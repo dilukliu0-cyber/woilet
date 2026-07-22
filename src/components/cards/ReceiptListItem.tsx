@@ -1,4 +1,4 @@
-import { Receipt as ReceiptIcon } from 'lucide-react-native';
+import { Receipt as ReceiptIcon, RefreshCw } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { getReceiptImageUrl } from '../../services/receipts/receiptImage';
@@ -28,9 +28,21 @@ type Props = {
   // Кто потратил (для семейных чеков): аватарка/ник владельца.
   ownerAvatarUrl?: string | null;
   ownerName?: string | null;
+  // Когда задан и receipt.status === 'error' — на карточке появляется
+  // видимая кнопка повторного распознавания вместо того чтобы прятать её
+  // в меню долгого нажатия.
+  onRescan?: () => void;
 };
 
-export function ReceiptListItem({ receipt, onPress, onLongPress, style, ownerAvatarUrl, ownerName }: Props) {
+export function ReceiptListItem({
+  receipt,
+  onPress,
+  onLongPress,
+  style,
+  ownerAvatarUrl,
+  ownerName,
+  onRescan,
+}: Props) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -76,9 +88,16 @@ export function ReceiptListItem({ receipt, onPress, onLongPress, style, ownerAva
         <Text style={styles.amount}>
           {(receipt.total_amount ?? 0).toFixed(2)} {receipt.currency}
         </Text>
-        <Text style={[styles.status, { color: STATUS_COLOR[receipt.status] }]}>
-          {STATUS_LABEL[receipt.status]}
-        </Text>
+        {receipt.status === 'error' && onRescan ? (
+          <Pressable style={styles.rescanButton} onPress={onRescan} hitSlop={6}>
+            <RefreshCw color={colors.error} size={12} />
+            <Text style={styles.rescanText}>Прочитать снова</Text>
+          </Pressable>
+        ) : (
+          <Text style={[styles.status, { color: STATUS_COLOR[receipt.status] }]}>
+            {STATUS_LABEL[receipt.status]}
+          </Text>
+        )}
       </View>
     </Pressable>
   );
@@ -165,5 +184,20 @@ const styles = themedStyles(() => StyleSheet.create({
   status: {
     fontSize: 12,
     marginTop: 4,
+  },
+  rescanButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(239,68,68,0.12)',
+  },
+  rescanText: {
+    color: colors.error,
+    fontSize: 11,
+    fontWeight: '600',
   },
 }));

@@ -44,6 +44,7 @@ import { ProfileMenuButton } from '../../components/ui/ProfileMenuButton';
 import { ScreenPlaceholder } from '../../components/ui/ScreenPlaceholder';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { SpeedDialFab } from '../../components/ui/SpeedDialFab';
+import { SwipeToDeleteRow } from '../../components/ui/SwipeToDeleteRow';
 import type { AppStackParamList } from '../../navigation/types';
 import { checkAiDigest } from '../../services/ai/aiDigest';
 import {
@@ -289,10 +290,7 @@ export function ExpensesScreen() {
     openDetail(id);
   }
 
-  async function handleRescan() {
-    if (!quickActionsReceipt) return;
-    const receipt = quickActionsReceipt;
-    setQuickActionsReceipt(null);
+  async function handleRescan(receipt: ReceiptRecord) {
     if (!receipt.image_path) {
       Alert.alert('Нет фото', 'Этот чек добавлен вручную — перезаписывать нечего.');
       return;
@@ -305,25 +303,15 @@ export function ExpensesScreen() {
     }
   }
 
-  function handleDeleteRequest() {
-    if (!quickActionsReceipt) return;
-    const receipt = quickActionsReceipt;
-    setQuickActionsReceipt(null);
-    Alert.alert('Удалить чек?', 'Это действие нельзя отменить.', [
-      { text: 'Отмена', style: 'cancel' },
-      {
-        text: 'Удалить',
-        style: 'destructive',
-        onPress: async () => {
-          const error = await deleteReceipt(receipt.id, receipt.image_path);
-          if (error) {
-            Alert.alert('Не удалось удалить чек', error);
-            return;
-          }
-          if (userId) fetchReceipts(userId);
-        },
-      },
-    ]);
+  // Подтверждение уже показал SwipeToDeleteRow — сюда попадаем только
+  // после явного тапа по корзинке и «Удалить» в алерте.
+  async function performDelete(receipt: ReceiptRecord) {
+    const error = await deleteReceipt(receipt.id, receipt.image_path);
+    if (error) {
+      Alert.alert('Не удалось удалить чек', error);
+      return;
+    }
+    if (userId) fetchReceipts(userId);
   }
 
   const hasFamilyReceipts = receipts.some((r) => r.user_id !== userId);
@@ -504,15 +492,18 @@ export function ExpensesScreen() {
           const foreignOwner = receipt.user_id !== userId ? ownerProfiles[receipt.user_id] : null;
           return (
             <FadeInView index={index}>
-              <ReceiptListItem
-                receipt={receipt}
-                onPress={() => openDetail(receipt.id)}
-                onLongPress={() => handleLongPress(receipt)}
-                ownerAvatarUrl={
-                  foreignOwner ? avatarUrl(foreignOwner.avatar_path, foreignOwner.updated_at) : myAvatar
-                }
-                ownerName={foreignOwner ? foreignOwner.nickname?.trim() || 'Без имени' : null}
-              />
+              <SwipeToDeleteRow onDelete={() => performDelete(receipt)}>
+                <ReceiptListItem
+                  receipt={receipt}
+                  onPress={() => openDetail(receipt.id)}
+                  onLongPress={() => handleLongPress(receipt)}
+                  onRescan={() => handleRescan(receipt)}
+                  ownerAvatarUrl={
+                    foreignOwner ? avatarUrl(foreignOwner.avatar_path, foreignOwner.updated_at) : myAvatar
+                  }
+                  ownerName={foreignOwner ? foreignOwner.nickname?.trim() || 'Без имени' : null}
+                />
+              </SwipeToDeleteRow>
             </FadeInView>
           );
         }}
@@ -827,8 +818,6 @@ export function ExpensesScreen() {
         receipt={quickActionsReceipt}
         onClose={() => setQuickActionsReceipt(null)}
         onEdit={handleEdit}
-        onDelete={handleDeleteRequest}
-        onRescan={handleRescan}
       />
 
       <SpeedDialFab

@@ -1,5 +1,5 @@
 import { BlurView } from 'expo-blur';
-import { Pencil, RefreshCw, Trash2 } from 'lucide-react-native';
+import { Pencil } from 'lucide-react-native';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ReceiptListItem } from '../cards/ReceiptListItem';
 import { colors } from '../../theme/colors';
@@ -10,16 +10,12 @@ type Props = {
   receipt: ReceiptRecord | null;
   onClose: () => void;
   onEdit: () => void;
-  onDelete: () => void;
-  onRescan: () => void;
 };
 
-export function ReceiptQuickActions({ receipt, onClose, onEdit, onDelete, onRescan }: Props) {
-  // Перезаписать предлагаем только когда распознавание реально не удалось —
-  // на уже готовом чеке (recognized/needs_review) эта опция не нужна и будет
-  // только сбивать с толку.
-  const canRescan = Boolean(receipt?.image_path) && receipt?.status === 'error';
-
+// Удаление теперь свайпом влево по карточке (SwipeToDeleteRow), а
+// перезапись распознавания — видимой кнопкой на самой карточке при
+// status === 'error'. Долгое нажатие оставлено только для редактирования.
+export function ReceiptQuickActions({ receipt, onClose, onEdit }: Props) {
   return (
     <Modal visible={receipt !== null} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
@@ -30,19 +26,9 @@ export function ReceiptQuickActions({ receipt, onClose, onEdit, onDelete, onResc
               <ReceiptListItem receipt={receipt} onPress={() => {}} onLongPress={() => {}} />
             </View>
             <View style={styles.actions}>
-              <Pressable style={styles.actionButton} onPress={onEdit}>
+              <Pressable style={[styles.actionButton, styles.lastButton]} onPress={onEdit}>
                 <Pencil color={colors.textPrimary} size={18} />
                 <Text style={styles.actionLabel}>Редактировать</Text>
-              </Pressable>
-              {canRescan && (
-                <Pressable style={styles.actionButton} onPress={onRescan}>
-                  <RefreshCw color={colors.accent} size={18} />
-                  <Text style={[styles.actionLabel, styles.rescanLabel]}>Перезаписать</Text>
-                </Pressable>
-              )}
-              <Pressable style={[styles.actionButton, styles.deleteButton]} onPress={onDelete}>
-                <Trash2 color={colors.error} size={18} />
-                <Text style={[styles.actionLabel, styles.deleteLabel]}>Удалить</Text>
               </Pressable>
             </View>
           </View>
@@ -84,18 +70,12 @@ const styles = themedStyles(() => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  deleteButton: {
+  lastButton: {
     borderBottomWidth: 0,
   },
   actionLabel: {
     color: colors.textPrimary,
     fontSize: 15,
     fontWeight: '500',
-  },
-  rescanLabel: {
-    color: colors.accent,
-  },
-  deleteLabel: {
-    color: colors.error,
   },
 }));
