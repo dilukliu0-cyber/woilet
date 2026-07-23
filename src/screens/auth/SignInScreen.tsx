@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { TextField } from '../../components/ui/TextField';
+import { useT } from '../../i18n/useT';
 import type { AuthStackParamList } from '../../navigation/types';
 import { useAuthStore } from '../../store/authStore';
 import { colors } from '../../theme/colors';
@@ -11,6 +12,7 @@ import { themedStyles } from '../../theme/themedStyles';
 type Props = NativeStackScreenProps<AuthStackParamList, 'SignIn'>;
 
 export function SignInScreen({ navigation }: Props) {
+  const t = useT();
   const signIn = useAuthStore((state) => state.signIn);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,12 +33,12 @@ export function SignInScreen({ navigation }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.content}>
-        <Text style={styles.title}>С возвращением</Text>
-        <Text style={styles.subtitle}>Войдите, чтобы продолжить учёт расходов.</Text>
+        <Text style={styles.title}>{t('auth_signin_title')}</Text>
+        <Text style={styles.subtitle}>{t('auth_signin_subtitle')}</Text>
 
         <View style={styles.form}>
           <TextField
-            label="Email"
+            label={t('common_email')}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -44,16 +46,21 @@ export function SignInScreen({ navigation }: Props) {
             placeholder="you@example.com"
           />
           <TextField
-            label="Пароль"
+            label={t('common_password')}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
             placeholder="••••••••"
           />
           {error && <Text style={styles.error}>{error}</Text>}
-          <PrimaryButton label="Войти" onPress={handleSubmit} loading={loading} disabled={!email || !password} />
           <PrimaryButton
-            label="Нет аккаунта? Зарегистрироваться"
+            label={t('auth_signin_button')}
+            onPress={handleSubmit}
+            loading={loading}
+            disabled={!email || !password}
+          />
+          <PrimaryButton
+            label={t('auth_no_account')}
             variant="secondary"
             onPress={() => navigation.navigate('SignUp')}
           />

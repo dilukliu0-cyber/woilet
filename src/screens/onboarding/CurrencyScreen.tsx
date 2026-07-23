@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SelectableRow } from '../../components/ui/SelectableRow';
+import { useT } from '../../i18n/useT';
 import type { OnboardingStackParamList } from '../../navigation/types';
 import { useSettingsStore } from '../../store/settingsStore';
 import { CURRENCIES } from '../../utils/currencies';
@@ -12,6 +13,7 @@ import { themedStyles } from '../../theme/themedStyles';
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'Currency'>;
 
 export function CurrencyScreen({ route }: Props) {
+  const t = useT();
   const { language } = route.params;
   const updateSettings = useSettingsStore((state) => state.updateSettings);
   const completeOnboarding = useSettingsStore((state) => state.completeOnboarding);
@@ -35,14 +37,14 @@ export function CurrencyScreen({ route }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Основная валюта</Text>
-        <Text style={styles.subtitle}>В ней будет считаться аналитика по всем чекам.</Text>
+        <Text style={styles.title}>{t('onboarding_currency_title')}</Text>
+        <Text style={styles.subtitle}>{t('onboarding_currency_subtitle')}</Text>
 
         <TextInput
           style={styles.searchInput}
           value={query}
           onChangeText={setQuery}
-          placeholder="Поиск валюты..."
+          placeholder={t('onboarding_currency_search_placeholder')}
           placeholderTextColor={colors.textSecondary}
         />
         <ScrollView style={styles.listScroll} contentContainerStyle={styles.list}>
@@ -58,7 +60,7 @@ export function CurrencyScreen({ route }: Props) {
       </View>
 
       <View style={styles.footer}>
-        <PrimaryButton label="Готово" onPress={handleFinish} loading={loading} />
+        <PrimaryButton label={t('common_done')} onPress={handleFinish} loading={loading} />
       </View>
     </View>
   );

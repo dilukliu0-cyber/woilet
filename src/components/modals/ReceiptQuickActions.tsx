@@ -2,6 +2,7 @@ import { BlurView } from 'expo-blur';
 import { Pencil } from 'lucide-react-native';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ReceiptListItem } from '../cards/ReceiptListItem';
+import { useT } from '../../i18n/useT';
 import { colors } from '../../theme/colors';
 import type { ReceiptRecord } from '../../types/receiptRecord';
 import { themedStyles } from '../../theme/themedStyles';
@@ -16,6 +17,7 @@ type Props = {
 // перезапись распознавания — видимой кнопкой на самой карточке при
 // status === 'error'. Долгое нажатие оставлено только для редактирования.
 export function ReceiptQuickActions({ receipt, onClose, onEdit }: Props) {
+  const t = useT();
   return (
     <Modal visible={receipt !== null} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
@@ -28,7 +30,7 @@ export function ReceiptQuickActions({ receipt, onClose, onEdit }: Props) {
             <View style={styles.actions}>
               <Pressable style={[styles.actionButton, styles.lastButton]} onPress={onEdit}>
                 <Pencil color={colors.textPrimary} size={18} />
-                <Text style={styles.actionLabel}>Редактировать</Text>
+                <Text style={styles.actionLabel}>{t('common_edit')}</Text>
               </Pressable>
             </View>
           </View>

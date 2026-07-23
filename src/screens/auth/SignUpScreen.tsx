@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { TextField } from '../../components/ui/TextField';
+import { useT } from '../../i18n/useT';
 import type { AuthStackParamList } from '../../navigation/types';
 import { useAuthStore } from '../../store/authStore';
 import { colors } from '../../theme/colors';
@@ -11,6 +12,7 @@ import { themedStyles } from '../../theme/themedStyles';
 type Props = NativeStackScreenProps<AuthStackParamList, 'SignUp'>;
 
 export function SignUpScreen({ navigation }: Props) {
+  const t = useT();
   const signUp = useAuthStore((state) => state.signUp);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,7 +23,7 @@ export function SignUpScreen({ navigation }: Props) {
 
   async function handleSubmit() {
     if (password !== confirmPassword) {
-      setError('Пароли не совпадают');
+      setError(t('auth_passwords_mismatch'));
       return;
     }
     setLoading(true);
@@ -38,11 +40,9 @@ export function SignUpScreen({ navigation }: Props) {
   if (confirmationSent) {
     return (
       <View style={styles.confirmContainer}>
-        <Text style={styles.title}>Проверьте почту</Text>
-        <Text style={styles.subtitle}>
-          Мы отправили письмо для подтверждения на {email.trim()}. Перейдите по ссылке в письме, затем войдите.
-        </Text>
-        <PrimaryButton label="К входу" onPress={() => navigation.navigate('SignIn')} />
+        <Text style={styles.title}>{t('auth_confirm_email_title')}</Text>
+        <Text style={styles.subtitle}>{t('auth_confirm_email_body', { email: email.trim() })}</Text>
+        <PrimaryButton label={t('auth_to_signin')} onPress={() => navigation.navigate('SignIn')} />
       </View>
     );
   }
@@ -53,12 +53,12 @@ export function SignUpScreen({ navigation }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.content}>
-        <Text style={styles.title}>Создать аккаунт</Text>
-        <Text style={styles.subtitle}>Регистрация занимает меньше минуты.</Text>
+        <Text style={styles.title}>{t('auth_signup_title')}</Text>
+        <Text style={styles.subtitle}>{t('auth_signup_subtitle')}</Text>
 
         <View style={styles.form}>
           <TextField
-            label="Email"
+            label={t('common_email')}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -66,14 +66,14 @@ export function SignUpScreen({ navigation }: Props) {
             placeholder="you@example.com"
           />
           <TextField
-            label="Пароль"
+            label={t('common_password')}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
-            placeholder="Минимум 6 символов"
+            placeholder={t('auth_password_placeholder_min')}
           />
           <TextField
-            label="Повторите пароль"
+            label={t('auth_confirm_password_label')}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry
@@ -81,12 +81,16 @@ export function SignUpScreen({ navigation }: Props) {
           />
           {error && <Text style={styles.error}>{error}</Text>}
           <PrimaryButton
-            label="Зарегистрироваться"
+            label={t('auth_signup_button')}
             onPress={handleSubmit}
             loading={loading}
             disabled={!email || !password || !confirmPassword}
           />
-          <PrimaryButton label="Уже есть аккаунт? Войти" variant="secondary" onPress={() => navigation.navigate('SignIn')} />
+          <PrimaryButton
+            label={t('auth_have_account')}
+            variant="secondary"
+            onPress={() => navigation.navigate('SignIn')}
+          />
         </View>
       </View>
     </KeyboardAvoidingView>

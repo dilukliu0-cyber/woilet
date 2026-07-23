@@ -3,41 +3,47 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SelectableRow } from '../../components/ui/SelectableRow';
+import { useT } from '../../i18n/useT';
+import { LOCALES, type Locale } from '../../i18n/translations';
 import type { OnboardingStackParamList } from '../../navigation/types';
+import { useLocaleStore } from '../../store/localeStore';
 import { colors } from '../../theme/colors';
 import { themedStyles } from '../../theme/themedStyles';
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'Language'>;
 
-const LANGUAGES = [
-  { code: 'ru', label: 'Русский' },
-  { code: 'cs', label: 'Čeština' },
-  { code: 'en', label: 'English' },
-];
-
 export function LanguageScreen({ navigation }: Props) {
-  const [selected, setSelected] = useState('ru');
+  const t = useT();
+  const setLocale = useLocaleStore((state) => state.setLocale);
+  const [selected, setSelected] = useState<Locale>('ru');
+
+  // Меняем язык интерфейса сразу по тапу — видно на этом же экране,
+  // а не только после завершения онбординга.
+  function choose(code: Locale) {
+    setSelected(code);
+    setLocale(code);
+  }
 
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Выберите язык</Text>
-        <Text style={styles.subtitle}>Язык интерфейса и ответов ИИ.</Text>
+        <Text style={styles.title}>{t('onboarding_language_title')}</Text>
+        <Text style={styles.subtitle}>{t('onboarding_language_subtitle')}</Text>
 
         <View style={styles.list}>
-          {LANGUAGES.map((lang) => (
+          {LOCALES.map((lang) => (
             <SelectableRow
               key={lang.code}
               label={lang.label}
               selected={selected === lang.code}
-              onPress={() => setSelected(lang.code)}
+              onPress={() => choose(lang.code)}
             />
           ))}
         </View>
       </View>
 
       <View style={styles.footer}>
-        <PrimaryButton label="Далее" onPress={() => navigation.navigate('Currency', { language: selected })} />
+        <PrimaryButton label={t('common_next')} onPress={() => navigation.navigate('Currency', { language: selected })} />
       </View>
     </View>
   );

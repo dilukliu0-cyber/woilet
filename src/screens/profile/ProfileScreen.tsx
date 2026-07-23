@@ -23,6 +23,8 @@ import type { AppStackParamList } from '../../navigation/types';
 import { supabase } from '../../services/api/supabaseClient';
 import { avatarUrl, pickAndUploadAvatar } from '../../services/profile/avatarService';
 import { sendTestNotification } from '../../services/notifications/pushNotifications';
+import { useT } from '../../i18n/useT';
+import { LOCALES } from '../../i18n/translations';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useToastStore } from '../../store/toastStore';
@@ -30,16 +32,11 @@ import { CURRENCIES } from '../../utils/currencies';
 import { colors } from '../../theme/colors';
 import { themedStyles } from '../../theme/themedStyles';
 
-const LANGUAGES = [
-  { code: 'ru', label: 'Русский' },
-  { code: 'cs', label: 'Čeština' },
-  { code: 'en', label: 'English' },
-];
-
 // Один экран вместо двух: раньше «Профиль» (ник/аватарка/ID) и «Настройки»
 // (тема/язык/валюта/...) жили отдельно — теперь всё здесь, попадают сюда
 // через единственный пункт «Настройка профиля» в рулетке аватарки.
 export function ProfileScreen() {
+  const t = useT();
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const insets = useSafeAreaInsets();
   const session = useAuthStore((state) => state.session);
@@ -59,7 +56,7 @@ export function ProfileScreen() {
   // не быть — тогда навигируем через собственный navigation.
   const rootNavigation = () => navigation.getParent<NativeStackNavigationProp<AppStackParamList>>() ?? navigation;
   const userId = session?.user.id ?? '';
-  const nickname = settings?.nickname?.trim() || 'Без имени';
+  const nickname = settings?.nickname?.trim() || t('profile_no_name');
   const avatar = avatarUrl(settings?.avatar_path ?? null, settings?.updated_at);
 
   const visibleCurrencies = useMemo(() => {
@@ -76,9 +73,9 @@ export function ProfileScreen() {
     const { path, error } = await pickAndUploadAvatar(userId);
     if (path) {
       await updateSettings({ avatar_path: path });
-      showToast('Аватарка обновлена');
+      showToast(t('profile_avatar_updated'));
     } else if (error) {
-      Alert.alert('Не удалось загрузить фото', error);
+      Alert.alert(t('profile_avatar_upload_failed'), error);
     }
     setUploadingAvatar(false);
   }
@@ -91,7 +88,7 @@ export function ProfileScreen() {
   async function saveNickname() {
     const trimmed = nicknameDraft.trim();
     if (!trimmed) {
-      Alert.alert('Ник не может быть пустым');
+      Alert.alert(t('profile_nickname_empty'));
       return;
     }
     await updateSettings({ nickname: trimmed });
@@ -101,17 +98,17 @@ export function ProfileScreen() {
   async function copyId() {
     if (!userId) return;
     await Clipboard.setStringAsync(userId);
-    showToast('ID скопирован в буфер обмена');
+    showToast(t('profile_id_copied'));
   }
 
   async function handleDeleteAccount() {
     Alert.alert(
-      'Удалить аккаунт?',
-      'Будут безвозвратно удалены все чеки, фото, лимиты и история чата. Это действие нельзя отменить.',
+      t('profile_delete_account_confirm_title'),
+      t('profile_delete_account_confirm_body'),
       [
-        { text: 'Отмена', style: 'cancel' },
+        { text: t('common_cancel'), style: 'cancel' },
         {
-          text: 'Удалить всё',
+          text: t('profile_delete_all'),
           style: 'destructive',
           onPress: async () => {
             setDeleting(true);
@@ -120,7 +117,10 @@ export function ProfileScreen() {
             );
             setDeleting(false);
             if (error || !data?.ok) {
-              Alert.alert('Не удалось удалить аккаунт', error?.message ?? data?.error ?? 'Попробуйте ещё раз');
+              Alert.alert(
+                t('profile_delete_account_failed'),
+                error?.message ?? data?.error ?? t('profile_delete_account_retry'),
+              );
               return;
             }
             await signOut();
@@ -136,7 +136,7 @@ export function ProfileScreen() {
         <Pressable style={styles.iconButton} onPress={() => navigation.goBack()}>
           <ArrowLeft color={colors.textPrimary} size={22} />
         </Pressable>
-        <Text style={styles.topTitle}>Профиль</Text>
+        <Text style={styles.topTitle}>{t('profile_title')}</Text>
         <View style={styles.iconButton} />
       </View>
 
@@ -163,29 +163,29 @@ export function ProfileScreen() {
         {/* Категории и Семейный аккаунт уже доступны из рулетки аватарки —
             здесь дублировать их не нужно, остаётся только ID. */}
         <Pressable style={styles.idRow} onPress={copyId}>
-          <Text style={styles.idLabel}>Ваш ID (нажмите, чтобы скопировать)</Text>
+          <Text style={styles.idLabel}>{t('profile_id_label')}</Text>
           <Text style={styles.idValue}>{userId}</Text>
         </Pressable>
 
         {/* Оформление: тема + язык интерфейса. */}
         <View style={styles.groupCard}>
-          <Text style={styles.groupTitle}>Оформление</Text>
-          <Text style={styles.subLabel}>Тема</Text>
+          <Text style={styles.groupTitle}>{t('profile_appearance')}</Text>
+          <Text style={styles.subLabel}>{t('profile_theme')}</Text>
           <View style={styles.list}>
             <SelectableRow
-              label="Тёмная"
+              label={t('profile_theme_dark')}
               selected={(settings?.theme ?? 'dark') === 'dark'}
               onPress={() => updateSettings({ theme: 'dark' })}
             />
             <SelectableRow
-              label="Светлая"
+              label={t('profile_theme_light')}
               selected={settings?.theme === 'light'}
               onPress={() => updateSettings({ theme: 'light' })}
             />
           </View>
-          <Text style={styles.subLabel}>Язык</Text>
+          <Text style={styles.subLabel}>{t('profile_language')}</Text>
           <View style={styles.list}>
-            {LANGUAGES.map((lang) => (
+            {LOCALES.map((lang) => (
               <SelectableRow
                 key={lang.code}
                 label={lang.label}
@@ -198,8 +198,8 @@ export function ProfileScreen() {
 
         {/* Деньги: валюта + перевод названий товаров — всё, что касается чеков. */}
         <View style={styles.groupCard}>
-          <Text style={styles.groupTitle}>Деньги и товары</Text>
-          <Text style={styles.subLabel}>Основная валюта</Text>
+          <Text style={styles.groupTitle}>{t('profile_money_items')}</Text>
+          <Text style={styles.subLabel}>{t('profile_main_currency')}</Text>
           {!currencyOpen ? (
             <Pressable style={styles.currencyRow} onPress={() => setCurrencyOpen(true)}>
               <Text style={styles.currencyValue}>
@@ -208,7 +208,7 @@ export function ProfileScreen() {
                   return cur ? `${cur.name} (${cur.symbol}) · ${cur.code}` : settings?.currency ?? 'CZK';
                 })()}
               </Text>
-              <Text style={styles.currencyChange}>Сменить</Text>
+              <Text style={styles.currencyChange}>{t('profile_change')}</Text>
             </Pressable>
           ) : (
             <>
@@ -216,7 +216,7 @@ export function ProfileScreen() {
                 style={styles.searchInput}
                 value={currencyQuery}
                 onChangeText={setCurrencyQuery}
-                placeholder="Поиск: название или код (EUR, гривна...)"
+                placeholder={t('profile_currency_search_placeholder')}
                 placeholderTextColor={colors.textSecondary}
                 autoFocus
               />
@@ -233,20 +233,16 @@ export function ProfileScreen() {
                     }}
                   />
                 ))}
-                {visibleCurrencies.length === 0 && <Text style={styles.hint}>Ничего не найдено.</Text>}
+                {visibleCurrencies.length === 0 && <Text style={styles.hint}>{t('profile_nothing_found')}</Text>}
               </View>
             </>
           )}
-          <Text style={styles.hint}>
-            Аналитика считается в основной валюте. Чеки в другой валюте конвертируются по курсу на день покупки.
-          </Text>
+          <Text style={styles.hint}>{t('profile_currency_hint')}</Text>
 
           <View style={styles.toggleRow}>
             <View style={styles.toggleTextWrap}>
-              <Text style={styles.toggleLabel}>Переводить товары</Text>
-              <Text style={styles.toggleHint}>
-                Названия товаров в чеке будут переведены на выбранный язык (кроме брендов).
-              </Text>
+              <Text style={styles.toggleLabel}>{t('profile_translate_items')}</Text>
+              <Text style={styles.toggleHint}>{t('profile_translate_items_hint')}</Text>
             </View>
             <Switch
               value={settings?.translate_items ?? false}
@@ -259,29 +255,29 @@ export function ProfileScreen() {
 
         {/* Диаграммы: вид на обоих экранах вместе. */}
         <View style={styles.groupCard}>
-          <Text style={styles.groupTitle}>Диаграммы</Text>
-          <Text style={styles.subLabel}>В «Расходах»</Text>
+          <Text style={styles.groupTitle}>{t('profile_charts')}</Text>
+          <Text style={styles.subLabel}>{t('profile_charts_expenses')}</Text>
           <View style={styles.list}>
             <SelectableRow
-              label="По категориям (кольцо)"
+              label={t('profile_chart_donut')}
               selected={(settings?.chart_style ?? 'donut') === 'donut'}
               onPress={() => updateSettings({ chart_style: 'donut' })}
             />
             <SelectableRow
-              label="Суммы по категориям (столбцы)"
+              label={t('profile_chart_bars')}
               selected={settings?.chart_style === 'bars'}
               onPress={() => updateSettings({ chart_style: 'bars' })}
             />
           </View>
-          <Text style={styles.subLabel}>На «Главной»</Text>
+          <Text style={styles.subLabel}>{t('profile_charts_home')}</Text>
           <View style={styles.list}>
             <SelectableRow
-              label="Динамика расходов (линия)"
+              label={t('profile_chart_line')}
               selected={(settings?.home_chart ?? 'line') === 'line'}
               onPress={() => updateSettings({ home_chart: 'line' })}
             />
             <SelectableRow
-              label="Расходы по дням (столбцы)"
+              label={t('profile_chart_daily')}
               selected={settings?.home_chart === 'daily'}
               onPress={() => updateSettings({ home_chart: 'daily' })}
             />
@@ -290,9 +286,9 @@ export function ProfileScreen() {
 
         {/* Уведомления и ИИ + стартовый гайд — «about the app» блок. */}
         <View style={styles.groupCard}>
-          <Text style={styles.groupTitle}>Уведомления и ИИ</Text>
+          <Text style={styles.groupTitle}>{t('profile_notifications_ai')}</Text>
           <View style={styles.toggleRow}>
-            <Text style={styles.toggleLabel}>Уведомления</Text>
+            <Text style={styles.toggleLabel}>{t('profile_notifications')}</Text>
             <Switch
               value={settings?.notifications_enabled ?? true}
               onValueChange={(value) => updateSettings({ notifications_enabled: value })}
@@ -301,7 +297,7 @@ export function ProfileScreen() {
             />
           </View>
           <View style={styles.toggleRow}>
-            <Text style={styles.toggleLabel}>Советы от ИИ</Text>
+            <Text style={styles.toggleLabel}>{t('profile_ai_tips')}</Text>
             <Switch
               value={settings?.ai_tips_enabled ?? true}
               onValueChange={(value) => updateSettings({ ai_tips_enabled: value })}
@@ -310,22 +306,22 @@ export function ProfileScreen() {
             />
           </View>
           <Pressable style={styles.currencyRow} onPress={() => sendTestNotification()}>
-            <Text style={styles.currencyValue}>Тестовое уведомление</Text>
-            <Text style={styles.currencyChange}>Отправить</Text>
+            <Text style={styles.currencyValue}>{t('profile_test_notification')}</Text>
+            <Text style={styles.currencyChange}>{t('profile_send')}</Text>
           </Pressable>
           <Pressable style={styles.currencyRow} onPress={() => rootNavigation()?.navigate('IntroPreview')}>
-            <Text style={styles.currencyValue}>Стартовый гайд</Text>
-            <Text style={styles.currencyChange}>Посмотреть</Text>
+            <Text style={styles.currencyValue}>{t('profile_intro_guide')}</Text>
+            <Text style={styles.currencyChange}>{t('profile_view')}</Text>
           </Pressable>
         </View>
 
         <Pressable style={styles.logoutRow} onPress={signOut}>
           <LogOut color={colors.error} size={18} />
-          <Text style={styles.logoutText}>Выйти из аккаунта</Text>
+          <Text style={styles.logoutText}>{t('profile_logout')}</Text>
         </Pressable>
 
         <PrimaryButton
-          label="Удалить аккаунт и все данные"
+          label={t('profile_delete_account')}
           variant="secondary"
           onPress={handleDeleteAccount}
           loading={deleting}
@@ -340,9 +336,14 @@ export function ProfileScreen() {
       >
         <Pressable style={styles.backdrop} onPress={() => setEditingNickname(false)}>
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.sheetTitle}>Ваш ник</Text>
-            <TextField label="Ник" value={nicknameDraft} onChangeText={setNicknameDraft} placeholder="Например, Дима" />
-            <PrimaryButton label="Сохранить" onPress={saveNickname} />
+            <Text style={styles.sheetTitle}>{t('profile_nickname_sheet_title')}</Text>
+            <TextField
+              label={t('profile_nickname_label')}
+              value={nicknameDraft}
+              onChangeText={setNicknameDraft}
+              placeholder={t('profile_nickname_placeholder')}
+            />
+            <PrimaryButton label={t('common_save')} onPress={saveNickname} />
           </Pressable>
         </Pressable>
       </Modal>

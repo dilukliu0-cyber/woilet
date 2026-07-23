@@ -45,6 +45,8 @@ import { ScreenPlaceholder } from '../../components/ui/ScreenPlaceholder';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { SpeedDialFab } from '../../components/ui/SpeedDialFab';
 import { SwipeToDeleteRow } from '../../components/ui/SwipeToDeleteRow';
+import { useT } from '../../i18n/useT';
+import { INTL_LOCALE, translateCategoryName } from '../../i18n/translations';
 import type { AppStackParamList } from '../../navigation/types';
 import { checkAiDigest } from '../../services/ai/aiDigest';
 import {
@@ -59,6 +61,7 @@ import { deleteIncome, fetchIncomes, fetchWalletBalance } from '../../services/w
 import { useAuthStore } from '../../store/authStore';
 import { useChatStore } from '../../store/chatStore';
 import { useLimitsStore } from '../../store/limitsStore';
+import { useLocaleStore } from '../../store/localeStore';
 import { useReceiptsStore } from '../../store/receiptsStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useToastStore } from '../../store/toastStore';
@@ -72,13 +75,27 @@ type FeedEntry =
   | { kind: 'receipt'; id: string; sortDate: string; receipt: ReceiptRecord }
   | { kind: 'income'; id: string; sortDate: string; income: IncomeRecord };
 
-const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-const MONTH_NAMES = [
-  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
-];
+// 1 января 2024 — понедельник: удобная опорная неделя, чтобы получить
+// названия дней через Intl вместо жёсткого списка на одном языке.
+function weekdayLabels(intlLocale: string): string[] {
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(2024, 0, 1 + i);
+    return new Intl.DateTimeFormat(intlLocale, { weekday: 'short' }).format(d).replace('.', '');
+  });
+}
+
+function monthLabels(intlLocale: string): string[] {
+  return Array.from({ length: 12 }, (_, i) =>
+    new Intl.DateTimeFormat(intlLocale, { month: 'long' }).format(new Date(2024, i, 1)),
+  );
+}
 
 export function ExpensesScreen() {
+  const t = useT();
+  const locale = useLocaleStore((state) => state.locale);
+  const intlLocale = INTL_LOCALE[locale];
+  const WEEKDAYS = weekdayLabels(intlLocale);
+  const MONTH_NAMES = monthLabels(intlLocale);
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const userId = useAuthStore((state) => state.session?.user.id);
   const signOut = useAuthStore((state) => state.signOut);
@@ -174,10 +191,10 @@ export function ExpensesScreen() {
   // Профиль — не вкладка, а «рулетка» из аватарки в шапке.
   function profileMenuActions() {
     return [
-      { icon: User, label: 'Настройка профиля', onPress: () => rootNav()?.navigate('Profile') },
-      { icon: LayoutGrid, label: 'Категории', onPress: () => rootNav()?.navigate('Categories') },
-      { icon: Users, label: 'Семейный аккаунт', onPress: () => rootNav()?.navigate('Family') },
-      { icon: LogOut, label: 'Выйти', onPress: () => signOut(), destructive: true },
+      { icon: User, label: t('expenses_menu_profile'), onPress: () => rootNav()?.navigate('Profile') },
+      { icon: LayoutGrid, label: t('expenses_menu_categories'), onPress: () => rootNav()?.navigate('Categories') },
+      { icon: Users, label: t('expenses_menu_family'), onPress: () => rootNav()?.navigate('Family') },
+      { icon: LogOut, label: t('expenses_menu_logout'), onPress: () => signOut(), destructive: true },
     ];
   }
 
@@ -233,15 +250,15 @@ export function ExpensesScreen() {
 
   function handleIncomeLongPress(income: IncomeRecord) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert('Удалить доход?', 'Сумма исчезнет из баланса кошелька.', [
-      { text: 'Отмена', style: 'cancel' },
+    Alert.alert(t('expenses_delete_income_title'), t('expenses_delete_income_body'), [
+      { text: t('common_cancel'), style: 'cancel' },
       {
-        text: 'Удалить',
+        text: t('common_delete'),
         style: 'destructive',
         onPress: async () => {
           const error = await deleteIncome(income.id);
           if (error) {
-            Alert.alert('Не удалось удалить доход', error);
+            Alert.alert(t('expenses_delete_income_failed'), error);
             return;
           }
           loadWallet();
@@ -256,14 +273,14 @@ export function ExpensesScreen() {
     const { error } = await submitScan(userId, scan.imageBase64, settings?.currency ?? 'CZK');
     setSendingQueueId(null);
     if (error) {
-      Alert.alert('Пока не получилось', 'Попробуйте ещё раз, когда появится сеть.');
+      Alert.alert(t('expenses_queue_not_sent_yet'), t('expenses_queue_retry_hint'));
       return;
     }
     await removeFromQueue(scan.id);
     const next = await getQueue();
     setPendingScans(next);
     if (next.length === 0) setQueueVisible(false);
-    showToast('Чек отправлен — обрабатывается в фоне');
+    showToast(t('expenses_receipt_sent_toast'));
     fetchReceipts(userId);
   }
 
@@ -292,14 +309,14 @@ export function ExpensesScreen() {
 
   async function handleRescan(receipt: ReceiptRecord) {
     if (!receipt.image_path) {
-      Alert.alert('Нет фото', 'Этот чек добавлен вручную — перезаписывать нечего.');
+      Alert.alert(t('expenses_no_photo_title'), t('expenses_no_photo_body'));
       return;
     }
-    showToast('Перезаписываю чек — распознаю заново…');
+    showToast(t('expenses_rescanning_toast'));
     const { error } = await rescanReceipt(receipt);
     if (userId) fetchReceipts(userId);
     if (error) {
-      Alert.alert('Не удалось перезаписать', error);
+      Alert.alert(t('expenses_rescan_failed'), error);
     }
   }
 
@@ -308,7 +325,7 @@ export function ExpensesScreen() {
   async function performDelete(receipt: ReceiptRecord) {
     const error = await deleteReceipt(receipt.id, receipt.image_path);
     if (error) {
-      Alert.alert('Не удалось удалить чек', error);
+      Alert.alert(t('expenses_delete_receipt_failed'), error);
       return;
     }
     if (userId) fetchReceipts(userId);
@@ -347,14 +364,14 @@ export function ExpensesScreen() {
       <View style={styles.container}>
         <ScreenPlaceholder
           icon={Wallet}
-          title="Расходы"
-          description="Здесь появятся ваши чеки — нажмите «+» и отсканируйте первый."
+          title={t('expenses_empty_title')}
+          description={t('expenses_empty_description')}
         />
         <SpeedDialFab
           actions={[
-            { icon: ScanLine, label: 'Сканировать чек', onPress: () => rootNav()?.navigate('Scan') },
-            { icon: PenLine, label: 'Добавить вручную', onPress: () => rootNav()?.navigate('AddExpense') },
-            { icon: WalletCards, label: 'Доход', onPress: () => rootNav()?.navigate('AddIncome') },
+            { icon: ScanLine, label: t('expenses_action_scan'), onPress: () => rootNav()?.navigate('Scan') },
+            { icon: PenLine, label: t('expenses_action_manual'), onPress: () => rootNav()?.navigate('AddExpense') },
+            { icon: WalletCards, label: t('expenses_action_income'), onPress: () => rootNav()?.navigate('AddIncome') },
           ]}
         />
         <ProfileMenuButton
@@ -371,7 +388,7 @@ export function ExpensesScreen() {
       <View style={styles.container}>
         <View style={styles.listContent}>
           <View style={styles.header}>
-            <Text style={styles.screenTitle}>Расходы</Text>
+            <Text style={styles.screenTitle}>{t('expenses_title')}</Text>
           </View>
           <Skeleton width="100%" height={220} borderRadius={22} />
           <Skeleton width={70} height={15} style={{ marginTop: 20, marginBottom: 10 }} />
@@ -394,12 +411,15 @@ export function ExpensesScreen() {
     const percent = limit.amount > 0 ? (spent / limit.amount) * 100 : 0;
     if (percent >= 100) {
       recommendations.push({
-        text: `Лимит «${limit.category_name}» превышен — что с этим делать?`,
+        text: t('expenses_limit_exceeded', { category: translateCategoryName(limit.category_name, locale) }),
         severity: 'exceeded',
       });
     } else if (percent >= 75) {
       recommendations.push({
-        text: `Я близок к лимиту «${limit.category_name}» (${Math.round(percent)}%) — как сэкономить?`,
+        text: t('expenses_limit_near', {
+          category: translateCategoryName(limit.category_name, locale),
+          percent: Math.round(percent),
+        }),
         severity: 'warning',
       });
     }
@@ -469,7 +489,7 @@ export function ExpensesScreen() {
           аватарка (тоже absolute, но фиксированная) больше не остаётся
           «одна» после того как заголовок уезжал вместе с контентом. */}
       <View style={styles.fixedHeader}>
-        <Text style={styles.screenTitle}>Расходы</Text>
+        <Text style={styles.screenTitle}>{t('expenses_title')}</Text>
       </View>
 
       <FlatList
@@ -486,10 +506,10 @@ export function ExpensesScreen() {
                   <PlusCircle color={colors.success} size={24} strokeWidth={1.75} />
                   <View style={styles.incomeInfo}>
                     <Text style={styles.incomeNote} numberOfLines={1}>
-                      {item.income.note?.trim() || 'Доход'}
+                      {item.income.note?.trim() || t('expenses_income_fallback')}
                     </Text>
                     <Text style={styles.incomeDate}>
-                      {new Date(item.income.created_at).toLocaleDateString('ru-RU', {
+                      {new Date(item.income.created_at).toLocaleDateString(intlLocale, {
                         day: 'numeric',
                         month: 'long',
                       })}
@@ -506,7 +526,11 @@ export function ExpensesScreen() {
           const foreignOwner = receipt.user_id !== userId ? ownerProfiles[receipt.user_id] : null;
           return (
             <FadeInView index={index}>
-              <SwipeToDeleteRow onDelete={() => performDelete(receipt)}>
+              <SwipeToDeleteRow
+                onDelete={() => performDelete(receipt)}
+                confirmTitle={t('expenses_delete_confirm_title')}
+                confirmMessage={t('expenses_delete_confirm_body')}
+              >
                 <ReceiptListItem
                   receipt={receipt}
                   onPress={() => openDetail(receipt.id)}
@@ -515,7 +539,7 @@ export function ExpensesScreen() {
                   ownerAvatarUrl={
                     foreignOwner ? avatarUrl(foreignOwner.avatar_path, foreignOwner.updated_at) : myAvatar
                   }
-                  ownerName={foreignOwner ? foreignOwner.nickname?.trim() || 'Без имени' : null}
+                  ownerName={foreignOwner ? foreignOwner.nickname?.trim() || t('expenses_owner_unknown') : null}
                 />
               </SwipeToDeleteRow>
             </FadeInView>
@@ -536,7 +560,7 @@ export function ExpensesScreen() {
               <Pressable style={styles.queueBanner} onPress={() => setQueueVisible(true)}>
                 <CloudUpload color={colors.warning} size={18} />
                 <Text style={styles.queueBannerText}>
-                  Ожидают отправки: {pendingScans.length}. Нажмите, чтобы посмотреть.
+                  {t('expenses_queue_banner', { count: pendingScans.length })}
                 </Text>
               </Pressable>
             )}
@@ -620,7 +644,7 @@ export function ExpensesScreen() {
                     style={[styles.chartCard, styles.cardBack, backAnimated]}
                     pointerEvents={openFace ? 'auto' : 'none'}
                   >
-                    <Text style={[styles.calendarTitle, styles.backTitle]}>Кошелёк</Text>
+                    <Text style={[styles.calendarTitle, styles.backTitle]}>{t('expenses_wallet')}</Text>
                     <View style={styles.walletBody}>
                       <View style={styles.walletIconCircle}>
                         <Wallet color={colors.accent} size={44} />
@@ -633,14 +657,14 @@ export function ExpensesScreen() {
                           (walletBalance?.balance ?? 0) < 0 && styles.walletBalanceNeg,
                         ]}
                       />
-                      <Text style={styles.walletCaption}>Баланс кошелька</Text>
+                      <Text style={styles.walletCaption}>{t('expenses_wallet_balance')}</Text>
                     </View>
                     {walletBalance && (
                       <View style={styles.walletStrip}>
                         <View style={styles.walletStripItem}>
                           <View style={styles.walletStripLabelRow}>
                             <ArrowUpCircle color={colors.success} size={14} />
-                            <Text style={styles.walletStripLabel}>Доходы</Text>
+                            <Text style={styles.walletStripLabel}>{t('expenses_income')}</Text>
                           </View>
                           <Text style={styles.walletSubIncome}>
                             +{walletBalance.totalIncome.toFixed(0)} {walletBalance.currency || categoryCurrency}
@@ -650,7 +674,7 @@ export function ExpensesScreen() {
                         <View style={styles.walletStripItem}>
                           <View style={styles.walletStripLabelRow}>
                             <ArrowDownCircle color={colors.error} size={14} />
-                            <Text style={styles.walletStripLabel}>Расходы</Text>
+                            <Text style={styles.walletStripLabel}>{t('expenses_expense')}</Text>
                           </View>
                           <Text style={styles.walletSubExpense}>
                             −{walletBalance.totalExpense.toFixed(0)} {walletBalance.currency || categoryCurrency}
@@ -682,7 +706,7 @@ export function ExpensesScreen() {
                           strokeWidth={26}
                           centerValue={monthTotal}
                           centerFormatter={(n) => `${n.toFixed(0)} ${categoryCurrency}`}
-                          centerBottom="Всего"
+                          centerBottom={t('expenses_total')}
                         />
                       </View>
                     ) : (
@@ -692,7 +716,7 @@ export function ExpensesScreen() {
                           formatter={(n) => `${n.toFixed(0)} ${categoryCurrency}`}
                           style={styles.barsTotal}
                         />
-                        <Text style={styles.barsTotalSub}>Всего за месяц</Text>
+                        <Text style={styles.barsTotalSub}>{t('expenses_total_month')}</Text>
                       </View>
                     )}
 
@@ -708,7 +732,7 @@ export function ExpensesScreen() {
                           />
                           <View style={styles.legendBody}>
                             <View style={styles.legendTopRow}>
-                              <Text style={styles.legendName}>{entry.categoryName}</Text>
+                              <Text style={styles.legendName}>{translateCategoryName(entry.categoryName, locale)}</Text>
                               <Text style={styles.legendAmount}>
                                 {entry.total.toFixed(0)} {categoryCurrency}
                               </Text>
@@ -791,7 +815,7 @@ export function ExpensesScreen() {
                 <View style={styles.aiCard}>
                   <View style={styles.aiHeader}>
                     <Sparkles color={colors.accent} size={18} />
-                    <Text style={styles.aiTitle}>Стоит спросить у ИИ</Text>
+                    <Text style={styles.aiTitle}>{t('expenses_ai_ask_title')}</Text>
                   </View>
                   {topRecommendations.map((rec, i) => (
                     <Pressable key={i} style={styles.aiBullet} onPress={() => openTipInChat(rec.text)}>
@@ -814,12 +838,12 @@ export function ExpensesScreen() {
                 {selectedDay !== null
                   ? `${selectedDay} ${MONTH_NAMES[calMonth].toLowerCase()}`
                   : walletMode
-                    ? 'Чеки и доходы'
-                    : 'Чеки'}
+                    ? t('expenses_receipts_and_incomes')
+                    : t('expenses_receipts')}
               </Text>
               {selectedDay !== null && (
                 <Pressable onPress={() => setSelectedDay(null)} hitSlop={8} style={styles.dayFilterClear}>
-                  <Text style={styles.dayFilterClearText}>Показать все</Text>
+                  <Text style={styles.dayFilterClearText}>{t('expenses_show_all')}</Text>
                 </Pressable>
               )}
             </View>
@@ -835,9 +859,9 @@ export function ExpensesScreen() {
 
       <SpeedDialFab
         actions={[
-          { icon: ScanLine, label: 'Сканировать чек', onPress: () => rootNav()?.navigate('Scan') },
-          { icon: PenLine, label: 'Добавить вручную', onPress: () => rootNav()?.navigate('AddExpense') },
-          { icon: WalletCards, label: 'Доход', onPress: () => rootNav()?.navigate('AddIncome') },
+          { icon: ScanLine, label: t('expenses_action_scan'), onPress: () => rootNav()?.navigate('Scan') },
+          { icon: PenLine, label: t('expenses_action_manual'), onPress: () => rootNav()?.navigate('AddExpense') },
+          { icon: WalletCards, label: t('expenses_action_income'), onPress: () => rootNav()?.navigate('AddIncome') },
         ]}
       />
       <ProfileMenuButton
@@ -850,8 +874,8 @@ export function ExpensesScreen() {
       <Modal visible={queueVisible} transparent animationType="slide" onRequestClose={() => setQueueVisible(false)}>
         <Pressable style={styles.backdrop} onPress={() => setQueueVisible(false)}>
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.sheetTitle}>Чеки в очереди ({pendingScans.length})</Text>
-            <Text style={styles.sheetSub}>Сняты без интернета. Отправьте, когда появится сеть, или удалите.</Text>
+            <Text style={styles.sheetTitle}>{t('expenses_queue_title', { count: pendingScans.length })}</Text>
+            <Text style={styles.sheetSub}>{t('expenses_queue_subtitle')}</Text>
             {pendingScans.map((scan) => (
               <View key={scan.id} style={styles.queueRow}>
                 <Image
@@ -860,14 +884,14 @@ export function ExpensesScreen() {
                 />
                 <View style={styles.queueInfo}>
                   <Text style={styles.queueDate}>
-                    {new Date(scan.createdAt).toLocaleString('ru-RU', {
+                    {new Date(scan.createdAt).toLocaleString(intlLocale, {
                       day: 'numeric',
                       month: 'long',
                       hour: '2-digit',
                       minute: '2-digit',
                     })}
                   </Text>
-                  <Text style={styles.queueStatus}>Ждёт отправки</Text>
+                  <Text style={styles.queueStatus}>{t('expenses_queue_waiting')}</Text>
                 </View>
                 <Pressable
                   style={styles.queueSend}

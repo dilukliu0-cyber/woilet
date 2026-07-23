@@ -1,16 +1,18 @@
 import { Receipt as ReceiptIcon, RefreshCw } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useT } from '../../i18n/useT';
+import type { TranslationKey } from '../../i18n/translations';
 import { getReceiptImageUrl } from '../../services/receipts/receiptImage';
 import { colors } from '../../theme/colors';
 import type { ReceiptRecord, ReceiptStatus } from '../../types/receiptRecord';
 import { themedStyles } from '../../theme/themedStyles';
 
-const STATUS_LABEL: Record<ReceiptStatus, string> = {
-  processing: 'Обрабатывается',
-  recognized: 'Распознано',
-  needs_review: 'Нужно проверить',
-  error: 'Ошибка',
+const STATUS_LABEL_KEY: Record<ReceiptStatus, TranslationKey> = {
+  processing: 'receipt_status_processing',
+  recognized: 'receipt_status_recognized',
+  needs_review: 'receipt_status_needs_review',
+  error: 'receipt_status_error',
 };
 
 const STATUS_COLOR: Record<ReceiptStatus, string> = {
@@ -48,6 +50,7 @@ export function ReceiptListItem({
   ownerName,
   onRescan,
 }: Props) {
+  const t = useT();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -83,7 +86,7 @@ export function ReceiptListItem({
         )}
       </View>
       <View style={styles.cardInfo}>
-        <Text style={styles.storeName}>{receipt.store_name || 'Магазин не распознан'}</Text>
+        <Text style={styles.storeName}>{receipt.store_name || t('receipt_store_unknown')}</Text>
         <Text style={styles.dateTime}>
           {[receipt.purchase_date, receipt.purchase_time].filter(Boolean).join(' ')}
           {ownerName ? ` · ${ownerName}` : ''}
@@ -99,11 +102,11 @@ export function ReceiptListItem({
         onRescan ? (
           <Pressable style={styles.rescanButton} onPress={onRescan} hitSlop={6}>
             <RefreshCw color={colors.error} size={12} />
-            <Text style={styles.rescanText}>Прочитать снова</Text>
+            <Text style={styles.rescanText}>{t('expenses_retry_read')}</Text>
           </Pressable>
         ) : (
           <Text style={[styles.status, { color: STATUS_COLOR[receipt.status] }]}>
-            {STATUS_LABEL[receipt.status]}
+            {t(STATUS_LABEL_KEY[receipt.status])}
           </Text>
         )}
       </View>

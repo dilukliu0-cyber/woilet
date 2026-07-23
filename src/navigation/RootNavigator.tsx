@@ -10,8 +10,10 @@ import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import type { AppStackParamList } from './types';
 import { useAuthStore } from '../store/authStore';
+import { useLocaleStore } from '../store/localeStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { useThemeStore } from '../store/themeStore';
+import type { Locale } from '../i18n/translations';
 import { colors, getCurrentTheme, type ThemeName } from '../theme/colors';
 import { AppStack } from './AppStack';
 import { AuthNavigator } from './AuthNavigator';
@@ -61,6 +63,7 @@ export function RootNavigator() {
   const fetchSettings = useSettingsStore((state) => state.fetch);
   const resetSettings = useSettingsStore((state) => state.reset);
   const setTheme = useThemeStore((state) => state.setTheme);
+  const setLocale = useLocaleStore((state) => state.setLocale);
 
   useEffect(() => {
     init();
@@ -82,6 +85,13 @@ export function RootNavigator() {
       setTheme(themeSetting as ThemeName);
     }
   }, [themeSetting, setTheme]);
+
+  const languageSetting = settings?.language;
+  useEffect(() => {
+    if (languageSetting === 'ru' || languageSetting === 'cs' || languageSetting === 'en') {
+      setLocale(languageSetting as Locale);
+    }
+  }, [languageSetting, setLocale]);
 
   const isLoading = isInitializing || (!!session && isSettingsLoading);
 

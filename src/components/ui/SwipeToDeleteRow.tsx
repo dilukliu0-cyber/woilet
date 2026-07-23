@@ -8,6 +8,7 @@ import {
   type PanGestureHandlerGestureEvent,
   type PanGestureHandlerStateChangeEvent,
 } from 'react-native-gesture-handler';
+import { useT } from '../../i18n/useT';
 import { colors } from '../../theme/colors';
 
 const ACTION_WIDTH = 76;
@@ -28,6 +29,7 @@ type Props = {
 // время скролла списка (`failOffsetY`) или лёгкое смещение (`activeOffsetX`)
 // ничего не удаляют, а на самой корзинке ещё и стоит подтверждение.
 export function SwipeToDeleteRow({ children, onDelete, confirmTitle, confirmMessage, style }: Props) {
+  const t = useT();
   const translateX = useRef(new Animated.Value(0)).current;
   const heightAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(1)).current;
@@ -59,10 +61,10 @@ export function SwipeToDeleteRow({ children, onDelete, confirmTitle, confirmMess
   }
 
   function confirmDelete() {
-    Alert.alert(confirmTitle ?? 'Удалить чек?', confirmMessage ?? 'Это действие нельзя отменить.', [
-      { text: 'Отмена', style: 'cancel', onPress: close },
+    Alert.alert(confirmTitle ?? t('expenses_delete_confirm_title'), confirmMessage ?? t('expenses_delete_confirm_body'), [
+      { text: t('common_cancel'), style: 'cancel', onPress: close },
       {
-        text: 'Удалить',
+        text: t('common_delete'),
         style: 'destructive',
         onPress: () => {
           if (measuredHeight.current != null) heightAnim.setValue(measuredHeight.current);

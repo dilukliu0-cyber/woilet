@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChatScreen } from '../screens/chat/ChatScreen';
 import { ExpensesScreen } from '../screens/expenses/ExpensesScreen';
 import { ShoppingScreen } from '../screens/shopping/ShoppingScreen';
+import { useT } from '../i18n/useT';
 import { colors } from '../theme/colors';
 import { themedStyles } from '../theme/themedStyles';
 import { haptics } from '../utils/haptics';
@@ -57,6 +58,7 @@ function CenterTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 }
 
 export function MainTabs() {
+  const t = useT();
   return (
     <Tab.Navigator
       initialRouteName="Expenses"
@@ -66,13 +68,13 @@ export function MainTabs() {
       <Tab.Screen
         name="Chat"
         component={ChatScreen}
-        options={{ title: 'ИИ-чат', tabBarIcon: ({ color, size }) => <Sparkles color={color} size={size} /> }}
+        options={{ title: t('tabs_chat'), tabBarIcon: ({ color, size }) => <Sparkles color={color} size={size} /> }}
       />
-      <Tab.Screen name="Expenses" component={ExpensesScreen} options={{ title: 'Расходы' }} />
+      <Tab.Screen name="Expenses" component={ExpensesScreen} options={{ title: t('tabs_expenses') }} />
       <Tab.Screen
         name="Shopping"
         component={ShoppingScreen}
-        options={{ title: 'Покупки', tabBarIcon: ({ color, size }) => <ShoppingCart color={color} size={size} /> }}
+        options={{ title: t('tabs_shopping'), tabBarIcon: ({ color, size }) => <ShoppingCart color={color} size={size} /> }}
       />
     </Tab.Navigator>
   );

@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useT } from '../../i18n/useT';
 import type { AppStackParamList, OnboardingStackParamList } from '../../navigation/types';
 import { colors } from '../../theme/colors';
 import { themedStyles } from '../../theme/themedStyles';
@@ -29,36 +30,21 @@ type Slide = {
   Illustration: (props: { active: boolean }) => React.ReactElement;
 };
 
-const SLIDES: Slide[] = [
-  {
-    title: 'Сфотографируй чек — остальное сделает ИИ',
-    description:
-      'Наведи камеру на чек: магазин, товары, цены и категории распознаются автоматически за секунды.',
-    Illustration: ScanIllustration,
-  },
-  {
-    title: 'Видно, куда уходят деньги',
-    description:
-      'Диаграмма по категориям, календарь трат по дням и динамика месяца — без ручного ввода таблиц.',
-    Illustration: ChartIllustration,
-  },
-  {
-    title: 'Лимиты и советы от ИИ',
-    description:
-      'Задай бюджет по категориям — приложение предупредит у порога и подскажет, на чём сэкономить.',
-    Illustration: LimitsIllustration,
-  },
-  {
-    title: 'Общий бюджет с семьёй',
-    description:
-      'Пригласи близких по ID: общие чеки, статистика кто сколько тратит и один список покупок на всех.',
-    Illustration: FamilyIllustration,
-  },
-];
+function useSlides(): Slide[] {
+  const t = useT();
+  return [
+    { title: t('intro_slide1_title'), description: t('intro_slide1_desc'), Illustration: ScanIllustration },
+    { title: t('intro_slide2_title'), description: t('intro_slide2_desc'), Illustration: ChartIllustration },
+    { title: t('intro_slide3_title'), description: t('intro_slide3_desc'), Illustration: LimitsIllustration },
+    { title: t('intro_slide4_title'), description: t('intro_slide4_desc'), Illustration: FamilyIllustration },
+  ];
+}
 
 // Сама карусель без привязки к навигатору: в онбординге onFinish ведёт
 // к выбору языка, при просмотре из настроек — просто закрывает экран.
 function IntroSlides({ onFinish, finishLabel }: { onFinish: () => void; finishLabel: string }) {
+  const t = useT();
+  const SLIDES = useSlides();
   const insets = useSafeAreaInsets();
   // Живая ширина окна, а не Dimensions при загрузке модуля: на web окно
   // меняет размер, и со статичной шириной пейджинг «уезжает» не на тот слайд.
@@ -86,10 +72,10 @@ function IntroSlides({ onFinish, finishLabel }: { onFinish: () => void; finishLa
   return (
     <View style={[styles.container, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 }]}>
       <View style={styles.topBar}>
-        <Text style={styles.brand}>ИИ-финансы</Text>
+        <Text style={styles.brand}>{t('intro_brand')}</Text>
         {!isLast && (
           <Pressable onPress={skip} hitSlop={10}>
-            <Text style={styles.skip}>Пропустить</Text>
+            <Text style={styles.skip}>{t('intro_skip')}</Text>
           </Pressable>
         )}
       </View>
@@ -161,7 +147,7 @@ function IntroSlides({ onFinish, finishLabel }: { onFinish: () => void; finishLa
         </View>
 
         <Pressable style={styles.nextButton} onPress={goNext}>
-          <Text style={styles.nextLabel}>{isLast ? finishLabel : 'Далее'}</Text>
+          <Text style={styles.nextLabel}>{isLast ? finishLabel : t('common_next')}</Text>
         </Pressable>
       </View>
     </View>
@@ -170,13 +156,15 @@ function IntroSlides({ onFinish, finishLabel }: { onFinish: () => void; finishLa
 
 // Первый шаг онбординга: после гайда — выбор языка.
 export function IntroScreen({ navigation }: Props) {
-  return <IntroSlides onFinish={() => navigation.navigate('Language')} finishLabel="Начать" />;
+  const t = useT();
+  return <IntroSlides onFinish={() => navigation.navigate('Language')} finishLabel={t('intro_start')} />;
 }
 
 // Просмотр гайда из Настроек: кнопки просто возвращают назад.
 export function IntroPreviewScreen() {
+  const t = useT();
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
-  return <IntroSlides onFinish={() => navigation.goBack()} finishLabel="Закрыть" />;
+  return <IntroSlides onFinish={() => navigation.goBack()} finishLabel={t('intro_close')} />;
 }
 
 const styles = themedStyles(() => StyleSheet.create({
