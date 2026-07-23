@@ -20,6 +20,11 @@ const STATUS_COLOR: Record<ReceiptStatus, string> = {
   error: colors.error,
 };
 
+// Если обработка идёт дольше этого — считаем чек зависшим (например,
+// приложение закрыли посреди распознавания, и status так и остался
+// processing навсегда, никогда не дойдя до error).
+const STUCK_PROCESSING_MS = 90_000;
+
 type Props = {
   receipt: ReceiptRecord;
   onPress: () => void;
@@ -88,7 +93,10 @@ export function ReceiptListItem({
         <Text style={styles.amount}>
           {(receipt.total_amount ?? 0).toFixed(2)} {receipt.currency}
         </Text>
-        {receipt.status === 'error' && onRescan ? (
+        {(receipt.status === 'error' ||
+          (receipt.status === 'processing' &&
+            Date.now() - new Date(receipt.created_at).getTime() > STUCK_PROCESSING_MS)) &&
+        onRescan ? (
           <Pressable style={styles.rescanButton} onPress={onRescan} hitSlop={6}>
             <RefreshCw color={colors.error} size={12} />
             <Text style={styles.rescanText}>Прочитать снова</Text>

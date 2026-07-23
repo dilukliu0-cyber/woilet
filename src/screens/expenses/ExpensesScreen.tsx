@@ -385,16 +385,23 @@ export function ExpensesScreen() {
 
   const monthTotal = categories.reduce((sum, c) => sum + c.total, 0);
 
-  // Советы ИИ: лимиты у порога/превышены — тап отправляет совет в чат,
-  // где ИИ разберёт его подробнее.
-  const recommendations: string[] = [];
+  // Советы ИИ: лимиты у порога/превышены — тап отправляет вопрос в чат,
+  // где ИИ разберёт его подробнее. severity красит точку и определяет
+  // формулировку — превышенный лимит нагляднее «красного», близкий — «жёлтого».
+  const recommendations: { text: string; severity: 'exceeded' | 'warning' }[] = [];
   for (const limit of limits) {
     const spent = categories.find((c) => c.categoryName === limit.category_name)?.total ?? 0;
     const percent = limit.amount > 0 ? (spent / limit.amount) * 100 : 0;
     if (percent >= 100) {
-      recommendations.push(`Лимит «${limit.category_name}» превышен — что с этим делать?`);
+      recommendations.push({
+        text: `Лимит «${limit.category_name}» превышен — что с этим делать?`,
+        severity: 'exceeded',
+      });
     } else if (percent >= 75) {
-      recommendations.push(`Я близок к лимиту «${limit.category_name}» (${Math.round(percent)}%) — как сэкономить?`);
+      recommendations.push({
+        text: `Я близок к лимиту «${limit.category_name}» (${Math.round(percent)}%) — как сэкономить?`,
+        severity: 'warning',
+      });
     }
   }
   const topRecommendations = recommendations.slice(0, 3);
@@ -458,6 +465,13 @@ export function ExpensesScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Закреплённая шапка: не скроллится вместе со списком, поэтому
+          аватарка (тоже absolute, но фиксированная) больше не остаётся
+          «одна» после того как заголовок уезжал вместе с контентом. */}
+      <View style={styles.fixedHeader}>
+        <Text style={styles.screenTitle}>Расходы</Text>
+      </View>
+
       <FlatList
         data={feedItems}
         keyExtractor={(item) => `${item.kind}-${item.id}`}
@@ -518,10 +532,6 @@ export function ExpensesScreen() {
         }
         ListHeaderComponent={
           <View style={styles.header}>
-            <View style={styles.headerTopRow}>
-              <Text style={styles.screenTitle}>Расходы</Text>
-            </View>
-
             {pendingScans.length > 0 && (
               <Pressable style={styles.queueBanner} onPress={() => setQueueVisible(true)}>
                 <CloudUpload color={colors.warning} size={18} />
@@ -781,15 +791,18 @@ export function ExpensesScreen() {
                 <View style={styles.aiCard}>
                   <View style={styles.aiHeader}>
                     <Sparkles color={colors.accent} size={18} />
-                    <Text style={styles.aiTitle}>
-                      ИИ нашёл {topRecommendations.length}{' '}
-                      {topRecommendations.length === 1 ? 'рекомендацию' : 'рекомендации'}
-                    </Text>
+                    <Text style={styles.aiTitle}>Стоит спросить у ИИ</Text>
                   </View>
-                  {topRecommendations.map((tip, i) => (
-                    <Pressable key={i} style={styles.aiBullet} onPress={() => openTipInChat(tip)}>
-                      <View style={styles.aiDot} />
-                      <Text style={styles.aiBulletText}>{tip}</Text>
+                  {topRecommendations.map((rec, i) => (
+                    <Pressable key={i} style={styles.aiBullet} onPress={() => openTipInChat(rec.text)}>
+                      <View
+                        style={[
+                          styles.aiDot,
+                          { backgroundColor: rec.severity === 'exceeded' ? colors.error : colors.warning },
+                        ]}
+                      />
+                      <Text style={styles.aiBulletText}>{rec.text}</Text>
+                      <ChevronRight color={colors.textSecondary} size={16} />
                     </Pressable>
                   ))}
                 </View>
@@ -882,9 +895,15 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   listContent: {
     padding: 20,
-    paddingTop: 64,
+    paddingTop: 16,
     // Чтобы плавающая «+» не закрывала последний чек в списке.
     paddingBottom: 110,
+  },
+  fixedHeader: {
+    paddingTop: 58,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    backgroundColor: colors.background,
   },
   header: {
     marginBottom: 16,
@@ -895,11 +914,6 @@ const styles = themedStyles(() => StyleSheet.create({
     fontSize: 26,
     fontWeight: '800',
     letterSpacing: -0.3,
-  },
-  headerTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
   },
   queueBanner: {
     flexDirection: 'row',
