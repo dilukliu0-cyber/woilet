@@ -5,11 +5,14 @@ import { AnimatedProgressBar } from '../../components/ui/AnimatedProgressBar';
 import { CategoryIcon } from '../../components/ui/CategoryIcon';
 import { FadeInView } from '../../components/ui/FadeInView';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { useT } from '../../i18n/useT';
+import { translateCategoryName } from '../../i18n/translations';
 import type { AppStackParamList } from '../../navigation/types';
 import { supabase } from '../../services/api/supabaseClient';
 import { fetchMonthlyCategoryBreakdown } from '../../services/analytics/categoryBreakdown';
 import { useAuthStore } from '../../store/authStore';
 import { useLimitsStore } from '../../store/limitsStore';
+import { useLocaleStore } from '../../store/localeStore';
 import { colors, getCategoryColor } from '../../theme/colors';
 import { themedStyles } from '../../theme/themedStyles';
 
@@ -25,6 +28,8 @@ type ProductRow = {
 type Props = NativeStackScreenProps<AppStackParamList, 'Category'>;
 
 export function CategoryDetailScreen({ route, navigation }: Props) {
+  const t = useT();
+  const locale = useLocaleStore((state) => state.locale);
   const { categoryName } = route.params;
   const userId = useAuthStore((state) => state.session?.user.id);
   const limits = useLimitsStore((state) => state.limits);
@@ -88,7 +93,7 @@ export function CategoryDetailScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title={categoryName} onBack={() => navigation.goBack()} />
+      <ScreenHeader title={translateCategoryName(categoryName, locale)} onBack={() => navigation.goBack()} />
 
       <ScrollView contentContainerStyle={styles.content}>
         <FadeInView index={0}>
@@ -97,7 +102,9 @@ export function CategoryDetailScreen({ route, navigation }: Props) {
             <Text style={styles.total}>
               {categoryTotal.toFixed(0)} {currency}
             </Text>
-            <Text style={styles.percentOfAll}>{percentOfAll.toFixed(0)}% от всех расходов</Text>
+            <Text style={styles.percentOfAll}>
+              {t('category_detail_percent_of_all', { percent: percentOfAll.toFixed(0) })}
+            </Text>
           </View>
         </FadeInView>
 
@@ -105,14 +112,18 @@ export function CategoryDetailScreen({ route, navigation }: Props) {
           <FadeInView index={1}>
             <View style={styles.limitCard}>
               <Text style={styles.limitLabel}>
-                {limitPercent.toFixed(0)}% от лимита ({limit.amount.toFixed(0)} {limit.currency})
+                {t('category_detail_limit_percent', {
+                  percent: limitPercent.toFixed(0),
+                  amount: limit.amount.toFixed(0),
+                  currency: limit.currency,
+                })}
               </Text>
               <AnimatedProgressBar percent={limitPercent} />
             </View>
           </FadeInView>
         )}
 
-        <Text style={styles.sectionTitle}>Популярные товары</Text>
+        <Text style={styles.sectionTitle}>{t('category_detail_popular_products')}</Text>
         <View style={styles.products}>
           {popular.map((product, i) => (
             <FadeInView key={product.name} index={i}>
@@ -124,7 +135,10 @@ export function CategoryDetailScreen({ route, navigation }: Props) {
                 <View style={styles.productInfo}>
                   <Text style={styles.productName}>{product.name}</Text>
                   <Text style={styles.productMeta}>
-                    {product.count} {product.count === 1 ? 'покупка' : 'покупок'}
+                    {product.count}{' '}
+                    {product.count === 1
+                      ? t('category_detail_purchase_singular')
+                      : t('category_detail_purchase_plural')}
                     {product.weight > 0 ? ` · ${product.weight.toFixed(0)} ${product.weightUnit ?? 'г'}` : ''}
                   </Text>
                 </View>
@@ -134,7 +148,7 @@ export function CategoryDetailScreen({ route, navigation }: Props) {
               </Pressable>
             </FadeInView>
           ))}
-          {popular.length === 0 && <Text style={styles.emptyText}>Покупок в этой категории пока нет.</Text>}
+          {popular.length === 0 && <Text style={styles.emptyText}>{t('category_detail_empty')}</Text>}
         </View>
       </ScrollView>
     </View>

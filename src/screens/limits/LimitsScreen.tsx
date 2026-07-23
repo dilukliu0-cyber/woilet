@@ -8,10 +8,13 @@ import { CategoryIcon } from '../../components/ui/CategoryIcon';
 import { FadeInView } from '../../components/ui/FadeInView';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { TextField } from '../../components/ui/TextField';
+import { useT } from '../../i18n/useT';
+import { translateCategoryName } from '../../i18n/translations';
 import type { AppStackParamList } from '../../navigation/types';
 import { fetchCategoryMonthlyAverage, fetchMonthlyCategoryBreakdown } from '../../services/analytics/categoryBreakdown';
 import { useAuthStore } from '../../store/authStore';
 import { useLimitsStore } from '../../store/limitsStore';
+import { useLocaleStore } from '../../store/localeStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { colors, progressColor } from '../../theme/colors';
 import { CATEGORY_ICON_BY_NAME, CATEGORY_NAMES } from '../../utils/categoryIconMap';
@@ -21,6 +24,8 @@ import { themedStyles } from '../../theme/themedStyles';
 type Props = NativeStackScreenProps<AppStackParamList, 'Limits'>;
 
 export function LimitsScreen({ navigation }: Props) {
+  const t = useT();
+  const locale = useLocaleStore((state) => state.locale);
   const userId = useAuthStore((state) => state.session?.user.id);
   const currency = useSettingsStore((state) => state.settings?.currency ?? '');
   const limits = useLimitsStore((state) => state.limits);
@@ -82,7 +87,7 @@ export function LimitsScreen({ navigation }: Props) {
     if (!userId || !selectedCategory) return;
     const parsed = Number(amount.replace(',', '.'));
     if (!parsed || parsed <= 0) {
-      setError('Введите сумму лимита больше нуля');
+      setError(t('limits_amount_required'));
       return;
     }
     setSaving(true);
@@ -101,16 +106,14 @@ export function LimitsScreen({ navigation }: Props) {
         <Pressable style={styles.iconButton} onPress={() => navigation.goBack()}>
           <ArrowLeft color={colors.textPrimary} size={22} />
         </Pressable>
-        <Text style={styles.topTitle}>Лимиты</Text>
+        <Text style={styles.topTitle}>{t('limits_title')}</Text>
         <Pressable style={styles.iconButton} onPress={openModal} disabled={availableCategories.length === 0}>
           <Plus color={availableCategories.length === 0 ? colors.textSecondary : colors.accent} size={22} />
         </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {limits.length === 0 && (
-          <Text style={styles.emptyText}>Лимитов пока нет. Нажмите «+», чтобы добавить первый.</Text>
-        )}
+        {limits.length === 0 && <Text style={styles.emptyText}>{t('limits_empty')}</Text>}
 
         {limits.map((limit, index) => {
           const spent = spentByCategory[limit.category_name] ?? 0;
@@ -122,7 +125,7 @@ export function LimitsScreen({ navigation }: Props) {
                 <View style={styles.cardTop}>
                   <CategoryIcon category={limit.category_name} size={40} />
                   <View style={styles.cardTopInfo}>
-                    <Text style={styles.categoryName}>{limit.category_name}</Text>
+                    <Text style={styles.categoryName}>{translateCategoryName(limit.category_name, locale)}</Text>
                     <Text style={styles.amountText}>
                       {spent.toFixed(0)} / {limit.amount.toFixed(0)} {limit.currency}
                     </Text>
@@ -135,15 +138,15 @@ export function LimitsScreen({ navigation }: Props) {
                 <AnimatedProgressBar percent={percent} />
                 {percent >= 100 ? (
                   <Text style={[styles.warningText, { color: colors.error }]}>
-                    Лимит превышен на {(spent - limit.amount).toFixed(0)} {limit.currency}
+                    {t('limits_exceeded_by', { amount: (spent - limit.amount).toFixed(0), currency: limit.currency })}
                   </Text>
                 ) : percent >= 90 ? (
                   <Text style={[styles.warningText, { color: colors.error }]}>
-                    Осталось всего {(limit.amount - spent).toFixed(0)} {limit.currency} до лимита
+                    {t('limits_left_until', { amount: (limit.amount - spent).toFixed(0), currency: limit.currency })}
                   </Text>
                 ) : percent >= 75 ? (
                   <Text style={[styles.warningText, { color: colors.warning }]}>
-                    Лимит почти заполнен — осталось {(limit.amount - spent).toFixed(0)} {limit.currency}
+                    {t('limits_almost_full', { amount: (limit.amount - spent).toFixed(0), currency: limit.currency })}
                   </Text>
                 ) : null}
               </View>
@@ -156,7 +159,7 @@ export function LimitsScreen({ navigation }: Props) {
         <KeyboardAvoidingView style={styles.kavFill} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <Pressable style={styles.backdrop} onPress={() => setModalVisible(false)}>
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.sheetTitle}>Новый лимит</Text>
+            <Text style={styles.sheetTitle}>{t('limits_new_title')}</Text>
             <ScrollView style={styles.categoryList} contentContainerStyle={styles.categoryListContent}>
               <View style={styles.tileGrid}>
                 {availableCategories.map((name) => {
@@ -177,7 +180,7 @@ export function LimitsScreen({ navigation }: Props) {
                         )}
                       </View>
                       <Text style={styles.tileLabel} numberOfLines={2}>
-                        {name}
+                        {translateCategoryName(name, locale)}
                       </Text>
                     </Pressable>
                   );
@@ -185,7 +188,7 @@ export function LimitsScreen({ navigation }: Props) {
               </View>
             </ScrollView>
             <TextField
-              label={`Сумма лимита (${currency || 'CZK'})`}
+              label={t('limits_amount_label', { currency: currency || 'CZK' })}
               value={amount}
               onChangeText={setAmount}
               keyboardType="numeric"
@@ -194,13 +197,18 @@ export function LimitsScreen({ navigation }: Props) {
             {suggestedAmount !== null && (
               <Pressable style={styles.suggestionRow} onPress={applySuggestion}>
                 <Text style={styles.suggestionText}>
-                  Обычно тратите ~{Math.round(suggestedAmount)} {currency || 'CZK'}/мес в этой категории
+                  {t('limits_suggestion', { amount: Math.round(suggestedAmount), currency: currency || 'CZK' })}
                 </Text>
-                <Text style={styles.suggestionAction}>Подставить</Text>
+                <Text style={styles.suggestionAction}>{t('limits_suggestion_apply')}</Text>
               </Pressable>
             )}
             {error && <Text style={styles.errorText}>{error}</Text>}
-            <PrimaryButton label="Сохранить" onPress={handleSave} loading={saving} disabled={!selectedCategory} />
+            <PrimaryButton
+              label={t('common_save')}
+              onPress={handleSave}
+              loading={saving}
+              disabled={!selectedCategory}
+            />
           </Pressable>
         </Pressable>
         </KeyboardAvoidingView>

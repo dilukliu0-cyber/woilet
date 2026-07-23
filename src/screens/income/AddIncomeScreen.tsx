@@ -4,6 +4,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 're
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { TextField } from '../../components/ui/TextField';
+import { useT } from '../../i18n/useT';
 import type { AppStackParamList } from '../../navigation/types';
 import { addIncome } from '../../services/wallet/walletService';
 import { useAuthStore } from '../../store/authStore';
@@ -16,6 +17,7 @@ import { haptics } from '../../utils/haptics';
 type Props = NativeStackScreenProps<AppStackParamList, 'AddIncome'>;
 
 export function AddIncomeScreen({ navigation }: Props) {
+  const t = useT();
   const userId = useAuthStore((state) => state.session?.user.id);
   const currency = useSettingsStore((state) => state.settings?.currency ?? 'CZK');
   const showToast = useToastStore((state) => state.show);
@@ -28,7 +30,7 @@ export function AddIncomeScreen({ navigation }: Props) {
   async function handleSave() {
     const parsed = Number(amount.replace(',', '.'));
     if (!parsed || parsed <= 0) {
-      setError('Введите сумму больше нуля');
+      setError(t('add_income_amount_required'));
       return;
     }
     if (!userId) return;
@@ -43,17 +45,17 @@ export function AddIncomeScreen({ navigation }: Props) {
       return;
     }
     haptics.success();
-    showToast('Доход добавлен');
+    showToast(t('add_income_added_toast'));
     navigation.goBack();
   }
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScreenHeader title="Добавить доход" onBack={() => navigation.goBack()} />
+      <ScreenHeader title={t('add_income_title')} onBack={() => navigation.goBack()} />
 
       <ScrollView contentContainerStyle={styles.content}>
         <TextField
-          label={`Сумма (${currency})`}
+          label={t('add_income_amount_label', { currency })}
           value={amount}
           onChangeText={setAmount}
           keyboardType="numeric"
@@ -61,15 +63,15 @@ export function AddIncomeScreen({ navigation }: Props) {
           autoFocus
         />
         <TextField
-          label="Заметка — откуда это (необязательно)"
+          label={t('add_income_note_label')}
           value={note}
           onChangeText={setNote}
-          placeholder="Например, Зарплата"
+          placeholder={t('add_income_note_placeholder')}
         />
 
         {error && <Text style={styles.errorText}>{error}</Text>}
 
-        <PrimaryButton label="Сохранить" onPress={handleSave} loading={saving} />
+        <PrimaryButton label={t('common_save')} onPress={handleSave} loading={saving} />
       </ScrollView>
     </KeyboardAvoidingView>
   );

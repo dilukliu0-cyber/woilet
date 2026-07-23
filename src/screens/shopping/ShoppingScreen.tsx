@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { supabase } from '../../services/api/supabaseClient';
+import { useT } from '../../i18n/useT';
 import { useAuthStore } from '../../store/authStore';
 import { useShoppingListStore } from '../../store/shoppingListStore';
 import { colors } from '../../theme/colors';
@@ -17,6 +18,7 @@ const FORGOTTEN_AFTER_DAYS = 7;
 // ИИ теперь целиком живёт в общем чате («сделай список для лазаньи») —
 // здесь только сам список: добавить/отметить/удалить товар вручную.
 export function ShoppingScreen() {
+  const t = useT();
   const userId = useAuthStore((state) => state.session?.user.id);
   const items = useShoppingListStore((state) => state.items);
   const isLoading = useShoppingListStore((state) => state.isLoading);
@@ -86,7 +88,7 @@ export function ShoppingScreen() {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.header}>
         <ShoppingCart color={colors.accent} size={26} strokeWidth={1.75} />
-        <Text style={styles.title}>Покупки</Text>
+        <Text style={styles.title}>{t('shopping_title')}</Text>
       </View>
 
       <FlatList
@@ -99,15 +101,13 @@ export function ShoppingScreen() {
         ListHeaderComponent={
           forgotten ? (
             <View style={styles.forgotCard}>
-              <Text style={styles.forgotText}>
-                Кажется, ты давно не покупал «{forgotten.text}». Оставить в списке?
-              </Text>
+              <Text style={styles.forgotText}>{t('shopping_forgot_text', { item: forgotten.text })}</Text>
               <View style={styles.forgotActions}>
                 <Pressable style={styles.forgotYes} onPress={() => keepForgotten(forgotten)}>
-                  <Text style={styles.forgotYesText}>Да</Text>
+                  <Text style={styles.forgotYesText}>{t('shopping_forgot_yes')}</Text>
                 </Pressable>
                 <Pressable style={styles.forgotNo} onPress={() => deleteItem(forgotten.id)}>
-                  <Text style={styles.forgotNoText}>Нет, убрать</Text>
+                  <Text style={styles.forgotNoText}>{t('shopping_forgot_no')}</Text>
                 </Pressable>
               </View>
             </View>
@@ -123,9 +123,7 @@ export function ShoppingScreen() {
           ) : (
             <View style={styles.emptyWrap}>
               <Sparkles color={colors.textSecondary} size={26} />
-              <Text style={styles.emptyText}>
-                Список пуст. Добавьте товар ниже или попросите в «ИИ-чате»: «сделай список для лазаньи».
-              </Text>
+              <Text style={styles.emptyText}>{t('shopping_empty')}</Text>
             </View>
           )
         }
@@ -136,7 +134,7 @@ export function ShoppingScreen() {
           style={styles.input}
           value={text}
           onChangeText={setText}
-          placeholder="Добавить товар..."
+          placeholder={t('shopping_add_placeholder')}
           placeholderTextColor={colors.textSecondary}
           onSubmitEditing={handleAdd}
           returnKeyType="done"

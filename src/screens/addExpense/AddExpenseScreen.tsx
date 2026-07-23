@@ -5,10 +5,13 @@ import { useCallback, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { TextField } from '../../components/ui/TextField';
+import { useT } from '../../i18n/useT';
+import { translateCategoryName } from '../../i18n/translations';
 import type { AppStackParamList } from '../../navigation/types';
 import { addManualExpense } from '../../services/receipts/receiptsService';
 import { useAuthStore } from '../../store/authStore';
 import { useCategoriesStore } from '../../store/categoriesStore';
+import { useLocaleStore } from '../../store/localeStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { colors } from '../../theme/colors';
 import { getCategoryIcon } from '../../utils/categoryIcons';
@@ -18,6 +21,8 @@ import { haptics } from '../../utils/haptics';
 type Props = NativeStackScreenProps<AppStackParamList, 'AddExpense'>;
 
 export function AddExpenseScreen({ navigation }: Props) {
+  const t = useT();
+  const locale = useLocaleStore((state) => state.locale);
   const userId = useAuthStore((state) => state.session?.user.id);
   const currency = useSettingsStore((state) => state.settings?.currency ?? 'CZK');
   const categories = useCategoriesStore((state) => state.categories);
@@ -42,15 +47,15 @@ export function AddExpenseScreen({ navigation }: Props) {
     const parsedQuantity = Number(quantity.replace(',', '.')) || 1;
 
     if (!name.trim()) {
-      setError('Введите название');
+      setError(t('add_expense_name_required'));
       return;
     }
     if (!parsedPrice || parsedPrice <= 0) {
-      setError('Введите цену больше нуля');
+      setError(t('add_expense_price_required'));
       return;
     }
     if (!categoryName) {
-      setError('Выберите категорию');
+      setError(t('add_expense_category_required'));
       return;
     }
     if (!userId) return;
@@ -81,29 +86,34 @@ export function AddExpenseScreen({ navigation }: Props) {
         <Pressable style={styles.iconButton} onPress={() => navigation.goBack()}>
           <ArrowLeft color={colors.textPrimary} size={22} />
         </Pressable>
-        <Text style={styles.topTitle}>Добавить расход</Text>
+        <Text style={styles.topTitle}>{t('add_expense_title')}</Text>
         <View style={styles.iconButton} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <TextField label="Название" value={name} onChangeText={setName} placeholder="Например, Обед" />
         <TextField
-          label={`Цена (${currency})`}
+          label={t('add_expense_name_label')}
+          value={name}
+          onChangeText={setName}
+          placeholder={t('add_expense_name_placeholder')}
+        />
+        <TextField
+          label={t('add_expense_price_label', { currency })}
           value={price}
           onChangeText={setPrice}
           keyboardType="numeric"
           placeholder="150"
         />
-        <TextField label="Магазин (необязательно)" value={store} onChangeText={setStore} placeholder="Lidl" />
+        <TextField label={t('add_expense_store_label')} value={store} onChangeText={setStore} placeholder="Lidl" />
         <TextField
-          label="Количество"
+          label={t('add_expense_quantity_label')}
           value={quantity}
           onChangeText={setQuantity}
           keyboardType="numeric"
           placeholder="1"
         />
 
-        <Text style={styles.sectionLabel}>Категория</Text>
+        <Text style={styles.sectionLabel}>{t('add_expense_category_label')}</Text>
         <View style={styles.grid}>
           {categories.map((category) => {
             const Icon = getCategoryIcon(category.icon);
@@ -123,7 +133,7 @@ export function AddExpenseScreen({ navigation }: Props) {
                   )}
                 </View>
                 <Text style={styles.tileLabel} numberOfLines={2}>
-                  {category.name}
+                  {translateCategoryName(category.name, locale)}
                 </Text>
               </Pressable>
             );
@@ -132,7 +142,7 @@ export function AddExpenseScreen({ navigation }: Props) {
 
         {error && <Text style={styles.errorText}>{error}</Text>}
 
-        <PrimaryButton label="Сохранить" onPress={handleSave} loading={saving} />
+        <PrimaryButton label={t('common_save')} onPress={handleSave} loading={saving} />
       </ScrollView>
     </KeyboardAvoidingView>
   );

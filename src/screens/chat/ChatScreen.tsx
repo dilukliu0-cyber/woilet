@@ -14,8 +14,11 @@ import {
   View,
 } from 'react-native';
 import { supabase } from '../../services/api/supabaseClient';
+import { useT } from '../../i18n/useT';
+import { dictionaries } from '../../i18n/translations';
 import { useAuthStore } from '../../store/authStore';
 import { useChatStore } from '../../store/chatStore';
+import { useLocaleStore } from '../../store/localeStore';
 import { colors } from '../../theme/colors';
 import type { ChatMessage } from '../../types/chatMessage';
 import type { ReceiptRecord } from '../../types/receiptRecord';
@@ -24,13 +27,15 @@ import { haptics } from '../../utils/haptics';
 
 type Attached = { id: string; label: string };
 
-function receiptLabel(r: ReceiptRecord): string {
-  const store = r.store_name || 'Магазин не распознан';
+function receiptLabel(r: ReceiptRecord, locale: keyof typeof dictionaries): string {
+  const store = r.store_name || dictionaries[locale].receipt_store_unknown;
   const total = r.total_amount != null ? `${r.total_amount.toFixed(2)} ${r.currency}` : '';
   return total ? `${store} · ${total}` : store;
 }
 
 export function ChatScreen() {
+  const t = useT();
+  const locale = useLocaleStore((state) => state.locale);
   const userId = useAuthStore((state) => state.session?.user.id);
   const messages = useChatStore((state) => state.messages);
   const isLoadingHistory = useChatStore((state) => state.isLoadingHistory);
@@ -65,7 +70,7 @@ export function ChatScreen() {
   }
 
   function pickReceipt(r: ReceiptRecord) {
-    setAttached({ id: r.id, label: receiptLabel(r) });
+    setAttached({ id: r.id, label: receiptLabel(r, locale) });
     setPickerVisible(false);
   }
 
@@ -113,10 +118,10 @@ export function ChatScreen() {
           <Sparkles color={colors.accent} size={20} />
         </View>
         <View style={styles.headerTitleWrap}>
-          <Text style={styles.title}>ИИ-ассистент</Text>
+          <Text style={styles.title}>{t('chat_assistant_title')}</Text>
           <View style={styles.statusRow}>
             <View style={styles.onlineDot} />
-            <Text style={styles.statusText}>Онлайн</Text>
+            <Text style={styles.statusText}>{t('chat_online')}</Text>
           </View>
         </View>
       </View>
@@ -132,11 +137,7 @@ export function ChatScreen() {
         ListEmptyComponent={
           !isLoadingHistory ? (
             <View style={styles.emptyWrap}>
-              <Text style={styles.emptyText}>
-                Привет! Спросите, например: «Сколько я потратил в этом месяце?», попросите «сделай список для
-                лазаньи» — товары появятся в Покупках и я пришлю рецепт, или прикрепите конкретный чек кнопкой
-                скрепки снизу.
-              </Text>
+              <Text style={styles.emptyText}>{t('chat_empty_hint')}</Text>
             </View>
           ) : null
         }
@@ -145,7 +146,7 @@ export function ChatScreen() {
       {isSending && (
         <View style={styles.typingRow}>
           <ActivityIndicator color={colors.accent} size="small" />
-          <Text style={styles.typingText}>Думаю...</Text>
+          <Text style={styles.typingText}>{t('chat_thinking')}</Text>
         </View>
       )}
 
@@ -171,7 +172,7 @@ export function ChatScreen() {
           style={styles.input}
           value={text}
           onChangeText={setText}
-          placeholder="Напишите сообщение..."
+          placeholder={t('chat_input_placeholder')}
           placeholderTextColor={colors.textSecondary}
           onSubmitEditing={handleSend}
           returnKeyType="send"
@@ -185,7 +186,7 @@ export function ChatScreen() {
       <Modal visible={pickerVisible} transparent animationType="slide" onRequestClose={() => setPickerVisible(false)}>
         <Pressable style={styles.backdrop} onPress={() => setPickerVisible(false)}>
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.sheetTitle}>Прикрепить чек</Text>
+            <Text style={styles.sheetTitle}>{t('chat_attach_receipt_title')}</Text>
             {pickerLoading ? (
               <ActivityIndicator color={colors.accent} style={styles.pickerLoading} />
             ) : (
@@ -194,12 +195,12 @@ export function ChatScreen() {
                 keyExtractor={(item) => item.id}
                 style={styles.pickerList}
                 contentContainerStyle={styles.pickerListContent}
-                ListEmptyComponent={<Text style={styles.emptyText}>Чеков пока нет.</Text>}
+                ListEmptyComponent={<Text style={styles.emptyText}>{t('chat_no_receipts')}</Text>}
                 renderItem={({ item }) => (
                   <Pressable style={styles.pickerRow} onPress={() => pickReceipt(item)}>
                     <ReceiptIcon color={colors.accent} size={20} strokeWidth={1.75} />
                     <View style={styles.pickerInfo}>
-                      <Text style={styles.pickerStore}>{item.store_name || 'Магазин не распознан'}</Text>
+                      <Text style={styles.pickerStore}>{item.store_name || t('receipt_store_unknown')}</Text>
                       <Text style={styles.pickerDate}>
                         {[item.purchase_date, item.purchase_time].filter(Boolean).join(' ')}
                       </Text>

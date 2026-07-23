@@ -6,11 +6,14 @@ import { CategoryIcon } from '../../components/ui/CategoryIcon';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SelectableRow } from '../../components/ui/SelectableRow';
 import { TextField } from '../../components/ui/TextField';
+import { useT } from '../../i18n/useT';
+import { translateCategoryName, type TranslationKey } from '../../i18n/translations';
 import type { AppStackParamList } from '../../navigation/types';
 import { deleteReceipt, deleteReceiptItem, updateReceiptItem } from '../../services/receipts/receiptsService';
 import { rescanReceipt } from '../../services/receipts/backgroundScan';
 import { getReceiptImageUrl } from '../../services/receipts/receiptImage';
 import { supabase } from '../../services/api/supabaseClient';
+import { useLocaleStore } from '../../store/localeStore';
 import { colors } from '../../theme/colors';
 import type { ReceiptItemRecord, ReceiptRecord, ReceiptStatus } from '../../types/receiptRecord';
 import { CATEGORY_NAMES } from '../../utils/categoryIconMap';
@@ -18,11 +21,11 @@ import { themedStyles } from '../../theme/themedStyles';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'ReceiptDetail'>;
 
-const STATUS_LABEL: Record<ReceiptStatus, string> = {
-  processing: 'Обрабатывается…',
-  recognized: 'Распознано',
-  needs_review: 'Нужно проверить',
-  error: 'Не распознано',
+const STATUS_LABEL_KEY: Record<ReceiptStatus, TranslationKey> = {
+  processing: 'receipt_detail_status_processing',
+  recognized: 'receipt_status_recognized',
+  needs_review: 'receipt_status_needs_review',
+  error: 'receipt_detail_status_error',
 };
 
 const STATUS_COLOR: Record<ReceiptStatus, string> = {
@@ -33,6 +36,8 @@ const STATUS_COLOR: Record<ReceiptStatus, string> = {
 };
 
 export function ReceiptDetailScreen({ route, navigation }: Props) {
+  const t = useT();
+  const locale = useLocaleStore((state) => state.locale);
   const { receiptId } = route.params;
   const [receipt, setReceipt] = useState<ReceiptRecord | null>(null);
   const [items, setItems] = useState<ReceiptItemRecord[]>([]);
@@ -80,7 +85,7 @@ export function ReceiptDetailScreen({ route, navigation }: Props) {
       category_name: editCategory,
     });
     if (error) {
-      Alert.alert('Не удалось сохранить', error);
+      Alert.alert(t('receipt_detail_save_failed'), error);
       return;
     }
     setEditingItem(null);
@@ -90,16 +95,16 @@ export function ReceiptDetailScreen({ route, navigation }: Props) {
   async function handleDeleteItem(item: ReceiptItemRecord) {
     const error = await deleteReceiptItem(item.id);
     if (error) {
-      Alert.alert('Не удалось удалить товар', error);
+      Alert.alert(t('receipt_detail_delete_item_failed'), error);
       return;
     }
     await load();
   }
 
   function confirmDeleteReceipt() {
-    Alert.alert('Удалить чек?', 'Это действие нельзя отменить.', [
-      { text: 'Отмена', style: 'cancel' },
-      { text: 'Удалить', style: 'destructive', onPress: handleDeleteReceipt },
+    Alert.alert(t('expenses_delete_confirm_title'), t('expenses_delete_confirm_body'), [
+      { text: t('common_cancel'), style: 'cancel' },
+      { text: t('common_delete'), style: 'destructive', onPress: handleDeleteReceipt },
     ]);
   }
 
@@ -109,21 +114,17 @@ export function ReceiptDetailScreen({ route, navigation }: Props) {
     const error = await deleteReceipt(receipt.id, receipt.image_path);
     setSaving(false);
     if (error) {
-      Alert.alert('Не удалось удалить чек', error);
+      Alert.alert(t('expenses_delete_receipt_failed'), error);
       return;
     }
     navigation.goBack();
   }
 
   function confirmRescan() {
-    Alert.alert(
-      'Перезаписать чек?',
-      'Фото будет распознано заново. Текущие товары чека заменятся распознанными.',
-      [
-        { text: 'Отмена', style: 'cancel' },
-        { text: 'Перезаписать', onPress: handleRescan },
-      ],
-    );
+    Alert.alert(t('receipt_detail_rescan_confirm_title'), t('receipt_detail_rescan_confirm_body'), [
+      { text: t('common_cancel'), style: 'cancel' },
+      { text: t('receipt_detail_rescan_confirm_action'), onPress: handleRescan },
+    ]);
   }
 
   async function handleRescan() {
@@ -132,7 +133,7 @@ export function ReceiptDetailScreen({ route, navigation }: Props) {
     const { error } = await rescanReceipt(receipt);
     setRescanning(false);
     if (error) {
-      Alert.alert('Не удалось перезаписать', error);
+      Alert.alert(t('expenses_rescan_failed'), error);
       return;
     }
     // Обработка идёт в фоне: перечитываем чек — статус станет «Обрабатывается»,
@@ -155,9 +156,9 @@ export function ReceiptDetailScreen({ route, navigation }: Props) {
         <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
           <ArrowLeft color={colors.textPrimary} size={22} />
         </Pressable>
-        <Text style={styles.topTitle}>Чек</Text>
+        <Text style={styles.topTitle}>{t('receipt_detail_title')}</Text>
         <Pressable style={styles.editToggle} onPress={() => setEditing((v) => !v)}>
-          <Text style={styles.editToggleText}>{editing ? 'Готово' : 'Изменить'}</Text>
+          <Text style={styles.editToggleText}>{editing ? t('receipt_detail_done') : t('receipt_detail_edit')}</Text>
         </Pressable>
       </View>
 
@@ -173,7 +174,7 @@ export function ReceiptDetailScreen({ route, navigation }: Props) {
             </View>
           )}
           <View style={styles.summaryInfo}>
-            <Text style={styles.storeName}>{receipt.store_name || 'Магазин не распознан'}</Text>
+            <Text style={styles.storeName}>{receipt.store_name || t('receipt_store_unknown')}</Text>
             {receipt.store_address && <Text style={styles.storeAddress}>{receipt.store_address}</Text>}
             <Text style={styles.dateTime}>
               {[receipt.purchase_date, receipt.purchase_time].filter(Boolean).join(' ')}
@@ -183,7 +184,7 @@ export function ReceiptDetailScreen({ route, navigation }: Props) {
             </Text>
             {receipt.source !== 'manual' && (
               <Text style={[styles.statusText, { color: STATUS_COLOR[receipt.status] }]}>
-                {STATUS_LABEL[receipt.status]}
+                {t(STATUS_LABEL_KEY[receipt.status])}
               </Text>
             )}
           </View>
@@ -193,12 +194,12 @@ export function ReceiptDetailScreen({ route, navigation }: Props) {
           <Pressable style={styles.rescanHint} onPress={confirmRescan} disabled={rescanning}>
             <RotateCw color={colors.accent} size={16} />
             <Text style={styles.rescanHintText}>
-              {rescanning ? 'Перезаписываю…' : 'Распознавание не удалось — перезаписать чек'}
+              {rescanning ? t('receipt_detail_rescanning') : t('receipt_detail_rescan_failed_hint')}
             </Text>
           </Pressable>
         )}
 
-        <Text style={styles.sectionTitle}>Товары ({items.length})</Text>
+        <Text style={styles.sectionTitle}>{t('receipt_detail_items_count', { count: items.length })}</Text>
 
         <View style={styles.items}>
           {items.map((item) => {
@@ -214,8 +215,8 @@ export function ReceiptDetailScreen({ route, navigation }: Props) {
                 <View style={styles.itemInfo}>
                   <Text style={styles.itemName}>{item.cleaned_name}</Text>
                   <Text style={styles.itemCategory}>
-                    {item.category_name}
-                    {item.needs_review ? ' · нужно проверить' : ''}
+                    {translateCategoryName(item.category_name, locale)}
+                    {item.needs_review ? t('receipt_detail_needs_review_suffix') : ''}
                   </Text>
                 </View>
                 <Text style={styles.itemPrice}>
@@ -229,21 +230,21 @@ export function ReceiptDetailScreen({ route, navigation }: Props) {
               </Pressable>
             );
           })}
-          {items.length === 0 && <Text style={styles.emptyText}>Все товары удалены.</Text>}
+          {items.length === 0 && <Text style={styles.emptyText}>{t('receipt_detail_all_deleted')}</Text>}
         </View>
 
         {editing && (
           <View style={styles.deleteReceiptWrap}>
             {receipt.status === 'error' && receipt.image_path && (
               <PrimaryButton
-                label={rescanning ? 'Перезаписываю…' : 'Перезаписать чек'}
+                label={rescanning ? t('receipt_detail_rescanning') : t('receipt_detail_rescan_receipt')}
                 variant="secondary"
                 onPress={confirmRescan}
                 loading={rescanning}
               />
             )}
             <PrimaryButton
-              label="Удалить чек"
+              label={t('receipt_detail_delete_receipt')}
               variant="secondary"
               onPress={confirmDeleteReceipt}
               loading={saving}
@@ -260,26 +261,26 @@ export function ReceiptDetailScreen({ route, navigation }: Props) {
       >
         <Pressable style={styles.backdrop} onPress={() => setEditingItem(null)}>
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.sheetTitle}>Редактировать товар</Text>
-            <TextField label="Название" value={editName} onChangeText={setEditName} />
+            <Text style={styles.sheetTitle}>{t('receipt_detail_edit_item_title')}</Text>
+            <TextField label={t('categories_name_label')} value={editName} onChangeText={setEditName} />
             <TextField
-              label={`Цена (${receipt.currency})`}
+              label={t('add_expense_price_label', { currency: receipt.currency })}
               value={editPrice}
               onChangeText={setEditPrice}
               keyboardType="numeric"
             />
-            <Text style={styles.sheetLabel}>Категория</Text>
+            <Text style={styles.sheetLabel}>{t('add_expense_category_label')}</Text>
             <ScrollView style={styles.categoryList} contentContainerStyle={styles.categoryListContent}>
               {CATEGORY_NAMES.map((name) => (
                 <SelectableRow
                   key={name}
-                  label={name}
+                  label={translateCategoryName(name, locale)}
                   selected={editCategory === name}
                   onPress={() => setEditCategory(name)}
                 />
               ))}
             </ScrollView>
-            <PrimaryButton label="Сохранить" onPress={applyEdit} />
+            <PrimaryButton label={t('common_save')} onPress={applyEdit} />
           </Pressable>
         </Pressable>
       </Modal>

@@ -8,6 +8,7 @@ import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, useWindow
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { submitScan } from '../../services/receipts/backgroundScan';
 import { enqueueScan, isNetworkError } from '../../services/offlineQueue/offlineQueue';
+import { useT } from '../../i18n/useT';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useToastStore } from '../../store/toastStore';
@@ -29,6 +30,7 @@ const OVERLAY_TEXT = '#FFFFFF';
 const OVERLAY_DARK = '#0A0A0C';
 
 export function ScanScreen({ navigation }: Props) {
+  const t = useT();
   const [permission, requestPermission] = useCameraPermissions();
   const [flash, setFlash] = useState<'off' | 'on'>('off');
   const [capturedPhotos, setCapturedPhotos] = useState<QueuedPhoto[]>([]);
@@ -75,11 +77,11 @@ export function ScanScreen({ navigation }: Props) {
         base64: true,
       });
       if (!manipulated.base64) {
-        throw new Error('Не удалось подготовить фото');
+        throw new Error(t('scan_prepare_failed'));
       }
       setCapturedPhotos((prev) => [...prev, { uri: manipulated.uri, base64: manipulated.base64! }]);
     } catch (err) {
-      Alert.alert('Ошибка', err instanceof Error ? err.message : 'Не удалось подготовить фото');
+      Alert.alert(t('scan_error_title'), err instanceof Error ? err.message : t('scan_prepare_failed'));
     } finally {
       setIsCapturing(false);
     }
@@ -106,9 +108,9 @@ export function ScanScreen({ navigation }: Props) {
 
   function confirmDiscardLast() {
     if (capturedPhotos.length === 0) return;
-    Alert.alert('Удалить последнее фото?', 'Оно не будет отправлено на распознавание.', [
-      { text: 'Отмена', style: 'cancel' },
-      { text: 'Удалить', style: 'destructive', onPress: () => setCapturedPhotos((prev) => prev.slice(0, -1)) },
+    Alert.alert(t('scan_discard_title'), t('scan_discard_body'), [
+      { text: t('common_cancel'), style: 'cancel' },
+      { text: t('common_delete'), style: 'destructive', onPress: () => setCapturedPhotos((prev) => prev.slice(0, -1)) },
     ]);
   }
 
@@ -129,11 +131,9 @@ export function ScanScreen({ navigation }: Props) {
           // §12.1: без сети — оставшиеся фото в локальную очередь.
           for (const item of queue.slice(i)) await enqueueScan(item.base64);
           setIsProcessing(false);
-          Alert.alert(
-            'Нет соединения',
-            'Фото чеков сохранены в очередь. Отправим со вкладки «Расходы», когда появится интернет.',
-            [{ text: 'Понятно', onPress: () => navigation.goBack() }],
-          );
+          Alert.alert(t('scan_no_connection_title'), t('scan_no_connection_body'), [
+            { text: t('scan_got_it'), onPress: () => navigation.goBack() },
+          ]);
           return;
         }
         setIsProcessing(false);
@@ -145,11 +145,7 @@ export function ScanScreen({ navigation }: Props) {
     }
 
     setIsProcessing(false);
-    showToast(
-      submitted === 1
-        ? 'Чек добавлен — обрабатывается в фоне'
-        : `Добавлено чеков: ${submitted} — обрабатываются в фоне`,
-    );
+    showToast(submitted === 1 ? t('scan_receipt_added') : t('scan_receipts_added', { count: submitted }));
     navigation.goBack();
   }
 
@@ -160,10 +156,10 @@ export function ScanScreen({ navigation }: Props) {
   if (!permission.granted) {
     return (
       <View style={[styles.container, styles.permissionContainer]}>
-        <Text style={styles.permissionTitle}>Нужен доступ к камере</Text>
-        <Text style={styles.permissionSubtitle}>Чтобы сканировать чеки, разрешите доступ к камере.</Text>
-        <PrimaryButton label="Разрешить доступ" onPress={requestPermission} />
-        <PrimaryButton label="Отмена" variant="secondary" onPress={() => navigation.goBack()} />
+        <Text style={styles.permissionTitle}>{t('scan_permission_title')}</Text>
+        <Text style={styles.permissionSubtitle}>{t('scan_permission_body')}</Text>
+        <PrimaryButton label={t('scan_permission_allow')} onPress={requestPermission} />
+        <PrimaryButton label={t('common_cancel')} variant="secondary" onPress={() => navigation.goBack()} />
       </View>
     );
   }
@@ -178,10 +174,10 @@ export function ScanScreen({ navigation }: Props) {
         <Pressable style={styles.iconButton} onPress={() => navigation.goBack()}>
           <X color={OVERLAY_TEXT} size={22} />
         </Pressable>
-        <Text style={styles.topTitle}>Сканирование чека</Text>
+        <Text style={styles.topTitle}>{t('scan_title')}</Text>
         <Pressable
           style={styles.iconButton}
-          onPress={() => Alert.alert('Подсказка', 'Поместите чек полностью внутри рамки при хорошем освещении.')}
+          onPress={() => Alert.alert(t('scan_hint_title'), t('scan_hint_body'))}
         >
           <CircleHelp color={OVERLAY_TEXT} size={22} />
         </Pressable>
@@ -201,7 +197,7 @@ export function ScanScreen({ navigation }: Props) {
           <View style={[styles.corner, styles.cornerBottomLeft]} />
           <View style={[styles.corner, styles.cornerBottomRight]} />
         </View>
-        <Text style={styles.hint}>Поместите чек внутри рамки</Text>
+        <Text style={styles.hint}>{t('scan_frame_hint')}</Text>
       </View>
 
       {processingError && (
@@ -239,7 +235,7 @@ export function ScanScreen({ navigation }: Props) {
                 style={styles.thumbnailButton}
                 onPress={confirmDiscardLast}
                 disabled={isProcessing}
-                accessibilityLabel="Последнее фото"
+                accessibilityLabel={t('scan_last_photo_a11y')}
               >
                 <Image source={{ uri: lastPhoto.uri }} style={styles.thumbnailImage} />
               </Pressable>
@@ -265,15 +261,15 @@ export function ScanScreen({ navigation }: Props) {
       {capturedPhotos.length > 0 && !isProcessing && (
         <Text style={styles.queueHint}>
           {capturedPhotos.length === 1
-            ? 'Готово 1 фото. Снимите ещё чек или нажмите ✓'
-            : `Готово ${capturedPhotos.length} фото. Нажмите ✓, чтобы распознать`}
+            ? t('scan_queue_hint_one')
+            : t('scan_queue_hint_many', { count: capturedPhotos.length })}
         </Text>
       )}
 
       {isProcessing && (
         <View style={styles.processingOverlay}>
           <ActivityIndicator color={colors.accent} size="large" />
-          <Text style={styles.processingText}>Загружаем фото...</Text>
+          <Text style={styles.processingText}>{t('scan_uploading')}</Text>
         </View>
       )}
     </View>

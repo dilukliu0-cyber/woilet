@@ -7,10 +7,13 @@ import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Tex
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { TextField } from '../../components/ui/TextField';
+import { useT } from '../../i18n/useT';
+import { translateCategoryName } from '../../i18n/translations';
 import type { AppStackParamList } from '../../navigation/types';
 import { supabase } from '../../services/api/supabaseClient';
 import { avatarUrl } from '../../services/profile/avatarService';
 import { useAuthStore } from '../../store/authStore';
+import { useLocaleStore } from '../../store/localeStore';
 import { useToastStore } from '../../store/toastStore';
 import { CATEGORY_NAMES } from '../../utils/categoryIconMap';
 import { colors } from '../../theme/colors';
@@ -30,6 +33,8 @@ type Invite = {
 };
 
 export function FamilyScreen({ navigation }: Props) {
+  const t = useT();
+  const locale = useLocaleStore((state) => state.locale);
   const userId = useAuthStore((state) => state.session?.user.id);
   const showToast = useToastStore((state) => state.show);
 
@@ -124,7 +129,7 @@ export function FamilyScreen({ navigation }: Props) {
       .single();
     if (error || !fam) {
       setBusy(false);
-      Alert.alert('Не удалось создать семью', error?.message ?? '');
+      Alert.alert(t('family_create_failed'), error?.message ?? '');
       return;
     }
     await supabase.from('family_members').insert({ family_id: fam.id, user_id: userId, allowed_categories: null });
@@ -136,7 +141,7 @@ export function FamilyScreen({ navigation }: Props) {
     const target = inviteId.trim();
     if (!familyId || !target || busy) return;
     if (target === userId) {
-      Alert.alert('Это ваш собственный ID');
+      Alert.alert(t('family_own_id'));
       return;
     }
     setBusy(true);
@@ -149,12 +154,12 @@ export function FamilyScreen({ navigation }: Props) {
     setBusy(false);
     if (error) {
       // FK на auth.users отсеет несуществующий ID.
-      Alert.alert('Не удалось отправить приглашение', 'Проверьте, что ID скопирован полностью и без пробелов.');
+      Alert.alert(t('family_send_invite_failed'), t('family_send_invite_failed_hint'));
       return;
     }
     setInviteId('');
     setInviteCategories(null);
-    showToast('Приглашение отправлено');
+    showToast(t('family_invite_sent'));
   }
 
   async function acceptInvite(invite: Invite) {
@@ -168,10 +173,10 @@ export function FamilyScreen({ navigation }: Props) {
     });
     setBusy(false);
     if (error) {
-      Alert.alert('Не удалось вступить в семью', error.message);
+      Alert.alert(t('family_join_failed'), error.message);
       return;
     }
-    showToast('Вы вступили в семью');
+    showToast(t('family_joined'));
     load();
   }
 
@@ -181,10 +186,10 @@ export function FamilyScreen({ navigation }: Props) {
   }
 
   function confirmLeave() {
-    Alert.alert('Покинуть семью?', 'Ваши чеки перестанут быть видны членам семьи.', [
-      { text: 'Отмена', style: 'cancel' },
+    Alert.alert(t('family_leave_title'), t('family_leave_body'), [
+      { text: t('common_cancel'), style: 'cancel' },
       {
-        text: 'Покинуть',
+        text: t('family_leave'),
         style: 'destructive',
         onPress: async () => {
           if (!familyId || !userId) return;
@@ -207,13 +212,13 @@ export function FamilyScreen({ navigation }: Props) {
   }
 
   function memberName(id: string): string {
-    if (id === userId) return 'Вы';
-    return profiles[id]?.nickname?.trim() || 'Без имени';
+    if (id === userId) return t('family_you');
+    return profiles[id]?.nickname?.trim() || t('profile_no_name');
   }
 
   async function copyMemberId(id: string) {
     await Clipboard.setStringAsync(id);
-    showToast('ID скопирован в буфер обмена');
+    showToast(t('profile_id_copied'));
   }
 
   if (loading) {
@@ -226,23 +231,26 @@ export function FamilyScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Семейный аккаунт" onBack={() => navigation.goBack()} />
+      <ScreenHeader title={t('family_title')} onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.content}>
         {incomingInvites.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Приглашения</Text>
+            <Text style={styles.sectionTitle}>{t('family_invites_section')}</Text>
             {incomingInvites.map((invite) => (
               <View key={invite.id} style={styles.inviteCard}>
                 <Text style={styles.inviteText}>
-                  Вас пригласили в семью
                   {invite.allowed_categories
-                    ? ` (делиться: ${invite.allowed_categories.join(', ')})`
-                    : ' (делиться всеми категориями)'}
+                    ? t('family_invited_text_some', {
+                        categories: invite.allowed_categories
+                          .map((c) => translateCategoryName(c, locale))
+                          .join(', '),
+                      })
+                    : t('family_invited_text_all')}
                 </Text>
                 <View style={styles.inviteActions}>
                   <Pressable style={styles.acceptButton} onPress={() => acceptInvite(invite)}>
                     <Check color={colors.background} size={16} />
-                    <Text style={styles.acceptText}>Принять</Text>
+                    <Text style={styles.acceptText}>{t('family_accept')}</Text>
                   </Pressable>
                   <Pressable style={styles.declineButton} onPress={() => declineInvite(invite)}>
                     <X color={colors.textSecondary} size={16} />
@@ -255,16 +263,13 @@ export function FamilyScreen({ navigation }: Props) {
 
         {!familyId ? (
           <View style={[styles.section, styles.card]}>
-            <Text style={styles.emptyText}>
-              Семьи пока нет. Создайте её и пригласите близких по их ID (он внизу экрана «Профиль») — общие расходы
-              будут видны всем, с пометкой кто потратил.
-            </Text>
-            <PrimaryButton label="Создать семью" onPress={createFamily} loading={busy} />
+            <Text style={styles.emptyText}>{t('family_empty_title')}</Text>
+            <PrimaryButton label={t('family_create')} onPress={createFamily} loading={busy} />
           </View>
         ) : (
           <>
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Участники ({members.length})</Text>
+              <Text style={styles.sectionTitle}>{t('family_members_section', { count: members.length })}</Text>
               <View style={styles.card}>
                 {members.map((member, index) => {
                   const profile = profiles[member.user_id];
@@ -290,17 +295,17 @@ export function FamilyScreen({ navigation }: Props) {
                         </View>
                         <Text style={styles.memberSub}>
                           {memberSpend[member.user_id] !== undefined
-                            ? `${memberSpend[member.user_id].toFixed(0)} ${spendCurrency} в этом месяце · `
+                            ? `${t('family_spent_this_month', { amount: memberSpend[member.user_id].toFixed(0), currency: spendCurrency })} · `
                             : ''}
                           {member.allowed_categories
-                            ? `делится: ${member.allowed_categories.length} катег.`
-                            : 'делится всеми категориями'}
+                            ? t('family_shares_count', { count: member.allowed_categories.length })
+                            : t('family_shares_all')}
                         </Text>
                         <Pressable onPress={() => copyMemberId(member.user_id)} hitSlop={4}>
                           <Text style={styles.memberId} numberOfLines={1} ellipsizeMode="middle">
-                            ID: {member.user_id}
+                            {t('family_id_prefix', { id: member.user_id })}
                           </Text>
-                          <Text style={styles.memberIdHint}>нажмите, чтобы скопировать</Text>
+                          <Text style={styles.memberIdHint}>{t('family_id_hint')}</Text>
                         </Pressable>
                       </View>
                     </View>
@@ -310,24 +315,31 @@ export function FamilyScreen({ navigation }: Props) {
             </View>
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Пригласить</Text>
+              <Text style={styles.sectionTitle}>{t('family_invite_section')}</Text>
               <View style={[styles.card, styles.inviteCardWrap]}>
                 <TextField
-                  label="ID друга"
+                  label={t('family_friend_id_label')}
                   value={inviteId}
                   onChangeText={setInviteId}
-                  placeholder="Вставьте ID из его профиля"
+                  placeholder={t('family_friend_id_placeholder')}
                   autoCapitalize="none"
                 />
                 <Text style={styles.categoriesLabel}>
-                  Какие категории будет видно {inviteCategories === null ? '(все)' : `(${inviteCategories.length})`}
+                  {t('family_categories_visible', {
+                    value:
+                      inviteCategories === null
+                        ? t('family_categories_all_short')
+                        : `(${inviteCategories.length})`,
+                  })}
                 </Text>
                 <View style={styles.chipsWrap}>
                   <Pressable
                     style={[styles.chip, inviteCategories === null && styles.chipActive]}
                     onPress={() => setInviteCategories(null)}
                   >
-                    <Text style={[styles.chipText, inviteCategories === null && styles.chipTextActive]}>Все</Text>
+                    <Text style={[styles.chipText, inviteCategories === null && styles.chipTextActive]}>
+                      {t('family_all_chip')}
+                    </Text>
                   </Pressable>
                   {CATEGORY_NAMES.map((name) => {
                     const active = inviteCategories?.includes(name) ?? false;
@@ -337,13 +349,15 @@ export function FamilyScreen({ navigation }: Props) {
                         style={[styles.chip, active && styles.chipActive]}
                         onPress={() => toggleInviteCategory(name)}
                       >
-                        <Text style={[styles.chipText, active && styles.chipTextActive]}>{name}</Text>
+                        <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                          {translateCategoryName(name, locale)}
+                        </Text>
                       </Pressable>
                     );
                   })}
                 </View>
                 <PrimaryButton
-                  label="Отправить приглашение"
+                  label={t('family_send_invite')}
                   onPress={sendInvite}
                   loading={busy}
                   disabled={!inviteId.trim()}
@@ -353,7 +367,7 @@ export function FamilyScreen({ navigation }: Props) {
 
             <Pressable style={[styles.card, styles.leaveRow]} onPress={confirmLeave}>
               <UserPlus color={colors.error} size={16} style={{ transform: [{ rotate: '45deg' }] }} />
-              <Text style={styles.leaveText}>Покинуть семью</Text>
+              <Text style={styles.leaveText}>{t('family_leave_row')}</Text>
             </Pressable>
           </>
         )}

@@ -6,9 +6,12 @@ import { CategoryIcon } from '../../components/ui/CategoryIcon';
 import { FadeInView } from '../../components/ui/FadeInView';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { StatCard } from '../../components/ui/StatCard';
+import { useT } from '../../i18n/useT';
+import { translateCategoryName } from '../../i18n/translations';
 import type { AppStackParamList } from '../../navigation/types';
 import { supabase } from '../../services/api/supabaseClient';
 import { useAuthStore } from '../../store/authStore';
+import { useLocaleStore } from '../../store/localeStore';
 import { colors, getCategoryColor } from '../../theme/colors';
 import { themedStyles } from '../../theme/themedStyles';
 
@@ -31,6 +34,8 @@ type PurchaseRow = {
 type Props = NativeStackScreenProps<AppStackParamList, 'Product'>;
 
 export function ProductScreen({ route, navigation }: Props) {
+  const t = useT();
+  const locale = useLocaleStore((state) => state.locale);
   const { productName } = route.params;
   const userId = useAuthStore((state) => state.session?.user.id);
   const [purchases, setPurchases] = useState<PurchaseRow[]>([]);
@@ -63,7 +68,7 @@ export function ProductScreen({ route, navigation }: Props) {
 
     const byStore = new Map<string, { total: number; count: number }>();
     purchases.forEach((p, i) => {
-      const store = p.receipt?.store_name ?? 'Без магазина';
+      const store = p.receipt?.store_name ?? t('product_no_store');
       const entry = byStore.get(store) ?? { total: 0, count: 0 };
       entry.total += basePrices[i];
       entry.count += 1;
@@ -76,7 +81,7 @@ export function ProductScreen({ route, navigation }: Props) {
     const chronological = purchases
       .map((p, i) => ({
         date: p.receipt?.purchase_date ?? p.receipt?.created_at.slice(0, 10) ?? '',
-        store: p.receipt?.store_name ?? 'Без магазина',
+        store: p.receipt?.store_name ?? t('product_no_store'),
         price: basePrices[i],
       }))
       .sort((a, b) => a.date.localeCompare(b.date));
@@ -106,31 +111,33 @@ export function ProductScreen({ route, navigation }: Props) {
             <Text style={styles.total}>
               {totalSpent.toFixed(0)} {currency}
             </Text>
-            <Text style={styles.sub}>Потрачено · {category}</Text>
+            <Text style={styles.sub}>{t('product_spent_label', { category: translateCategoryName(category, locale) })}</Text>
           </View>
         </FadeInView>
 
         <FadeInView index={1}>
           <View style={styles.statsRow}>
-            <StatCard value={`${purchases.length}`} label="Покупок" />
-            {totalWeight > 0 && <StatCard value={`${totalWeight.toFixed(0)} ${weightUnit}`} label="Количество" />}
-            <StatCard value={`${avgPrice.toFixed(0)} ${currency}`} label="Средняя цена" />
+            <StatCard value={`${purchases.length}`} label={t('product_purchases_label')} />
+            {totalWeight > 0 && (
+              <StatCard value={`${totalWeight.toFixed(0)} ${weightUnit}`} label={t('product_quantity_label')} />
+            )}
+            <StatCard value={`${avgPrice.toFixed(0)} ${currency}`} label={t('product_avg_price_label')} />
           </View>
         </FadeInView>
 
         {priceSeries.length >= 2 && (
           <FadeInView index={2}>
             <View style={styles.chartCard}>
-              <Text style={styles.sectionTitle}>История цен</Text>
+              <Text style={styles.sectionTitle}>{t('product_price_history')}</Text>
               <View style={styles.chartWrap}>
                 <Sparkline data={priceSeries} width={300} height={90} color={getCategoryColor(category)} />
               </View>
               <View style={styles.chartMeta}>
                 <Text style={styles.chartMetaText}>
-                  Мин: {Math.min(...priceSeries).toFixed(0)} {currency}
+                  {t('product_min', { amount: Math.min(...priceSeries).toFixed(0), currency })}
                 </Text>
                 <Text style={styles.chartMetaText}>
-                  Макс: {Math.max(...priceSeries).toFixed(0)} {currency}
+                  {t('product_max', { amount: Math.max(...priceSeries).toFixed(0), currency })}
                 </Text>
               </View>
             </View>
@@ -139,7 +146,7 @@ export function ProductScreen({ route, navigation }: Props) {
 
         {stores.length > 1 && (
           <FadeInView index={3}>
-            <Text style={styles.sectionTitle}>Где дешевле?</Text>
+            <Text style={styles.sectionTitle}>{t('product_where_cheaper')}</Text>
             <View style={styles.storesRow}>
               {stores.slice(0, 3).map((s, i) => (
                 <View key={s.store} style={[styles.storeCard, i === 0 && styles.storeCardBest]}>
@@ -155,7 +162,7 @@ export function ProductScreen({ route, navigation }: Props) {
           </FadeInView>
         )}
 
-        <Text style={styles.sectionTitle}>История покупок</Text>
+        <Text style={styles.sectionTitle}>{t('product_purchase_history')}</Text>
         <View style={styles.history}>
           {[...chronological].reverse().map((h, i) => (
             <View key={i} style={styles.historyRow}>
