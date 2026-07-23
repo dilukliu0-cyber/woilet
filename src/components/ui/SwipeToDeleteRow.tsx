@@ -1,41 +1,40 @@
 import * as Haptics from 'expo-haptics';
 import { Trash2 } from 'lucide-react-native';
 import { useRef, useState, type ReactNode } from 'react';
-import { Alert, Animated, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, StyleSheet, View } from 'react-native';
 import {
   PanGestureHandler,
   State,
   type PanGestureHandlerGestureEvent,
   type PanGestureHandlerStateChangeEvent,
 } from 'react-native-gesture-handler';
-import { useT } from '../../i18n/useT';
 import { colors } from '../../theme/colors';
 
-const ACTION_WIDTH = 76;
-// Свайп короче этого порога — просто закрывается назад, не считается
-// намеренным действием (защита от случайных лёгких касаний при скролле).
-const OPEN_DRAG_THRESHOLD = -40;
+// Оттянуть влево дальше этого порога и отпустить — чек удаляется сразу,
+// без отдельного тапа по корзинке и без диалога: сам факт того, что чек
+// решительно оттянули далеко (а не задели пальцем при скролле — это
+// отсекают failOffsetY/activeOffsetX ниже), и есть осознанное действие.
+const COMMIT_THRESHOLD = -130;
+const MAX_DRAG = -260;
 
 type Props = {
   children: ReactNode;
   onDelete: () => void | Promise<void>;
-  confirmTitle?: string;
-  confirmMessage?: string;
   style?: object;
 };
 
-// Свайп влево открывает корзинку (как в Телеграме): чтобы удалить нужно
-// осознанно потянуть карточку и затем нажать на неё — случайный свайп во
-// время скролла списка (`failOffsetY`) или лёгкое смещение (`activeOffsetX`)
-// ничего не удаляют, а на самой корзинке ещё и стоит подтверждение.
-export function SwipeToDeleteRow({ children, onDelete, confirmTitle, confirmMessage, style }: Props) {
-  const t = useT();
+export function SwipeToDeleteRow({ children, onDelete, style }: Props) {
   const translateX = useRef(new Animated.Value(0)).current;
   const heightAnim = useRef(new Animated.Value(0)).current;
-  const opacityAnim = useRef(new Animated.Value(1)).current;
-  const measuredHeight = useRef<number | null>(null);
-  const [open, setOpen] = useState(false);
-  const [removing, setRemoving] = useState(false);
+  const measuredHeight = useRef(0);
+  const [splitting, setSplitting] = useState(false);
+
+  // Анимация «расщепления»: верхняя половина карточки улетает вверх-влево,
+  // нижняя — вниз-влево, одновременно схлопывается высота строки — вместо
+  // простого сдвига получается ощущение, что чек буквально разламывается.
+  const topShift = useRef(new Animated.Value(0)).current;
+  const bottomShift = useRef(new Animated.Value(0)).current;
+  const splitOpacity = useRef(new Animated.Value(1)).current;
 
   const onGestureEvent = Animated.event<PanGestureHandlerGestureEvent>(
     [{ nativeEvent: { translationX: translateX } }],
@@ -44,85 +43,98 @@ export function SwipeToDeleteRow({ children, onDelete, confirmTitle, confirmMess
 
   function onHandlerStateChange(event: PanGestureHandlerStateChangeEvent) {
     if (event.nativeEvent.oldState !== State.ACTIVE) return;
-    const dx = event.nativeEvent.translationX;
-    const shouldOpen = dx < OPEN_DRAG_THRESHOLD;
-    if (shouldOpen && !open) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Animated.spring(translateX, {
-      toValue: shouldOpen ? -ACTION_WIDTH : 0,
-      useNativeDriver: true,
-      bounciness: 6,
-    }).start();
-    setOpen(shouldOpen);
-  }
-
-  function close() {
-    setOpen(false);
+    if (event.nativeEvent.translationX < COMMIT_THRESHOLD) {
+      commitDelete();
+      return;
+    }
     Animated.spring(translateX, { toValue: 0, useNativeDriver: true, bounciness: 6 }).start();
   }
 
-  function confirmDelete() {
-    Alert.alert(confirmTitle ?? t('expenses_delete_confirm_title'), confirmMessage ?? t('expenses_delete_confirm_body'), [
-      { text: t('common_cancel'), style: 'cancel', onPress: close },
-      {
-        text: t('common_delete'),
-        style: 'destructive',
-        onPress: () => {
-          if (measuredHeight.current != null) heightAnim.setValue(measuredHeight.current);
-          setRemoving(true);
-          Animated.parallel([
-            Animated.timing(translateX, { toValue: -400, duration: 240, useNativeDriver: true }),
-            Animated.timing(opacityAnim, { toValue: 0, duration: 180, useNativeDriver: false }),
-            Animated.timing(heightAnim, { toValue: 0, duration: 240, useNativeDriver: false, delay: 60 }),
-          ]).start(() => onDelete());
-        },
-      },
-    ]);
+  function commitDelete() {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    heightAnim.setValue(measuredHeight.current);
+    setSplitting(true);
+    Animated.parallel([
+      Animated.timing(translateX, { toValue: -400, duration: 260, useNativeDriver: true }),
+      Animated.timing(topShift, { toValue: -36, duration: 260, useNativeDriver: true }),
+      Animated.timing(bottomShift, { toValue: 36, duration: 260, useNativeDriver: true }),
+      Animated.timing(splitOpacity, { toValue: 0, duration: 220, useNativeDriver: true }),
+      Animated.timing(heightAnim, { toValue: 0, duration: 260, useNativeDriver: false, delay: 70 }),
+    ]).start(() => onDelete());
   }
 
   const clampedTranslateX = translateX.interpolate({
-    inputRange: [-ACTION_WIDTH, 0, 1],
-    outputRange: [-ACTION_WIDTH, 0, 0],
+    inputRange: [MAX_DRAG, 0, 1],
+    outputRange: [MAX_DRAG, 0, 0],
     extrapolate: 'clamp',
   });
-  const actionOpacity = translateX.interpolate({
-    inputRange: [-ACTION_WIDTH, -12, 0],
-    outputRange: [1, 0.2, 0],
+  const iconOpacity = translateX.interpolate({
+    inputRange: [-70, -20, 0],
+    outputRange: [1, 0.3, 0],
     extrapolate: 'clamp',
   });
-  const actionScale = translateX.interpolate({
-    inputRange: [-ACTION_WIDTH, -20, 0],
-    outputRange: [1, 0.7, 0.7],
+  const iconScale = translateX.interpolate({
+    inputRange: [COMMIT_THRESHOLD, -70, 0],
+    outputRange: [1.15, 0.85, 0.7],
     extrapolate: 'clamp',
   });
 
+  const height = measuredHeight.current;
+
   return (
     <Animated.View
-      style={[
-        removing ? { height: heightAnim, opacity: opacityAnim, overflow: 'hidden' } : undefined,
-      ]}
+      style={splitting ? { height: heightAnim, overflow: 'hidden' } : undefined}
       onLayout={(e) => {
-        if (!removing) measuredHeight.current = e.nativeEvent.layout.height;
+        if (!splitting) measuredHeight.current = e.nativeEvent.layout.height;
       }}
     >
       <View style={[styles.wrapper, style]}>
         <View style={styles.actionsBackdrop}>
-          <Animated.View style={{ opacity: actionOpacity, transform: [{ scale: actionScale }] }}>
-            <Pressable style={styles.deleteButton} onPress={confirmDelete} hitSlop={8}>
-              <Trash2 color="#fff" size={22} />
-            </Pressable>
+          <Animated.View style={{ opacity: iconOpacity, transform: [{ scale: iconScale }] }}>
+            <Trash2 color="#fff" size={22} />
           </Animated.View>
         </View>
-        <PanGestureHandler
-          onGestureEvent={onGestureEvent}
-          onHandlerStateChange={onHandlerStateChange}
-          activeOffsetX={[-14, 1000]}
-          failOffsetY={[-8, 8]}
-        >
-          <Animated.View style={{ transform: [{ translateX: clampedTranslateX }] }}>
-            {children}
-            {open && <Pressable style={StyleSheet.absoluteFill} onPress={close} />}
-          </Animated.View>
-        </PanGestureHandler>
+
+        {splitting ? (
+          <>
+            <Animated.View
+              style={[
+                styles.splitPiece,
+                {
+                  height: height / 2,
+                  opacity: splitOpacity,
+                  transform: [{ translateY: topShift }, { rotate: '-4deg' }],
+                },
+              ]}
+            >
+              <View style={{ height }}>{children}</View>
+            </Animated.View>
+            <Animated.View
+              style={[
+                styles.splitPiece,
+                {
+                  height: height / 2,
+                  top: height / 2,
+                  opacity: splitOpacity,
+                  transform: [{ translateY: bottomShift }, { rotate: '4deg' }],
+                },
+              ]}
+            >
+              <View style={{ height, marginTop: -height / 2 }}>{children}</View>
+            </Animated.View>
+          </>
+        ) : (
+          <PanGestureHandler
+            onGestureEvent={onGestureEvent}
+            onHandlerStateChange={onHandlerStateChange}
+            activeOffsetX={[-14, 1000]}
+            failOffsetY={[-8, 8]}
+          >
+            <Animated.View style={{ width: '100%', transform: [{ translateX: clampedTranslateX }] }}>
+              {children}
+            </Animated.View>
+          </PanGestureHandler>
+        )}
       </View>
     </Animated.View>
   );
@@ -131,22 +143,29 @@ export function SwipeToDeleteRow({ children, onDelete, confirmTitle, confirmMess
 const styles = StyleSheet.create({
   wrapper: {
     position: 'relative',
+    width: '100%',
   },
+  // Во всю ширину строки (а не узкая полоска у края) — так при любом
+  // рассинхроне ширины карточки со враппером под ней никогда не мелькнёт
+  // случайный красный обвод: цвет и так везде одинаковый.
   actionsBackdrop: {
     position: 'absolute',
+    left: 0,
     right: 0,
     top: 0,
     bottom: 0,
-    width: ACTION_WIDTH,
     borderRadius: 16,
     backgroundColor: colors.error,
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'center',
+    paddingRight: 26,
   },
-  deleteButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
+  splitPiece: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    overflow: 'hidden',
+    width: '100%',
   },
 });

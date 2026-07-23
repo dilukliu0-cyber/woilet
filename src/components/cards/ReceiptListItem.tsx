@@ -30,7 +30,6 @@ const STUCK_PROCESSING_MS = 90_000;
 type Props = {
   receipt: ReceiptRecord;
   onPress: () => void;
-  onLongPress: () => void;
   style?: object;
   // Кто потратил (для семейных чеков): аватарка/ник владельца.
   ownerAvatarUrl?: string | null;
@@ -44,7 +43,6 @@ type Props = {
 export function ReceiptListItem({
   receipt,
   onPress,
-  onLongPress,
   style,
   ownerAvatarUrl,
   ownerName,
@@ -64,12 +62,7 @@ export function ReceiptListItem({
   }, [receipt.image_path]);
 
   return (
-    <Pressable
-      style={[styles.card, style]}
-      onPress={onPress}
-      onLongPress={onLongPress}
-      delayLongPress={400}
-    >
+    <Pressable style={[styles.card, style]} onPress={onPress}>
       <View style={styles.thumbnailWrap}>
         <View style={styles.thumbnail}>
           {imageUrl ? (
@@ -116,6 +109,7 @@ export function ReceiptListItem({
 
 const styles = themedStyles(() => StyleSheet.create({
   card: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,

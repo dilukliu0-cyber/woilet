@@ -37,7 +37,6 @@ import {
 } from 'react-native';
 import { DonutChart, type DonutSegment } from '../../components/charts/DonutChart';
 import { ReceiptListItem } from '../../components/cards/ReceiptListItem';
-import { ReceiptQuickActions } from '../../components/modals/ReceiptQuickActions';
 import { AnimatedNumber } from '../../components/ui/AnimatedNumber';
 import { FadeInView } from '../../components/ui/FadeInView';
 import { ProfileMenuButton } from '../../components/ui/ProfileMenuButton';
@@ -108,7 +107,6 @@ export function ExpensesScreen() {
   const limits = useLimitsStore((state) => state.limits);
   const fetchLimits = useLimitsStore((state) => state.fetch);
 
-  const [quickActionsReceipt, setQuickActionsReceipt] = useState<ReceiptRecord | null>(null);
   const [pendingScans, setPendingScans] = useState<QueuedScan[]>([]);
   const [queueVisible, setQueueVisible] = useState(false);
   const [sendingQueueId, setSendingQueueId] = useState<string | null>(null);
@@ -295,18 +293,6 @@ export function ExpensesScreen() {
     rootNav()?.navigate('ReceiptDetail', { receiptId });
   }
 
-  function handleLongPress(receipt: ReceiptRecord) {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setQuickActionsReceipt(receipt);
-  }
-
-  function handleEdit() {
-    if (!quickActionsReceipt) return;
-    const id = quickActionsReceipt.id;
-    setQuickActionsReceipt(null);
-    openDetail(id);
-  }
-
   async function handleRescan(receipt: ReceiptRecord) {
     if (!receipt.image_path) {
       Alert.alert(t('expenses_no_photo_title'), t('expenses_no_photo_body'));
@@ -320,8 +306,8 @@ export function ExpensesScreen() {
     }
   }
 
-  // Подтверждение уже показал SwipeToDeleteRow — сюда попадаем только
-  // после явного тапа по корзинке и «Удалить» в алерте.
+  // Сюда попадаем только когда SwipeToDeleteRow зафиксировал решительный
+  // свайп влево (COMMIT_THRESHOLD) — сам жест и есть подтверждение.
   async function performDelete(receipt: ReceiptRecord) {
     const error = await deleteReceipt(receipt.id, receipt.image_path);
     if (error) {
@@ -526,15 +512,10 @@ export function ExpensesScreen() {
           const foreignOwner = receipt.user_id !== userId ? ownerProfiles[receipt.user_id] : null;
           return (
             <FadeInView index={index}>
-              <SwipeToDeleteRow
-                onDelete={() => performDelete(receipt)}
-                confirmTitle={t('expenses_delete_confirm_title')}
-                confirmMessage={t('expenses_delete_confirm_body')}
-              >
+              <SwipeToDeleteRow onDelete={() => performDelete(receipt)}>
                 <ReceiptListItem
                   receipt={receipt}
                   onPress={() => openDetail(receipt.id)}
-                  onLongPress={() => handleLongPress(receipt)}
                   onRescan={() => handleRescan(receipt)}
                   ownerAvatarUrl={
                     foreignOwner ? avatarUrl(foreignOwner.avatar_path, foreignOwner.updated_at) : myAvatar
@@ -849,12 +830,6 @@ export function ExpensesScreen() {
             </View>
           </View>
         }
-      />
-
-      <ReceiptQuickActions
-        receipt={quickActionsReceipt}
-        onClose={() => setQuickActionsReceipt(null)}
-        onEdit={handleEdit}
       />
 
       <SpeedDialFab
