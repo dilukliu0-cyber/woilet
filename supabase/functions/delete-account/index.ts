@@ -42,10 +42,11 @@ Deno.serve(async (req) => {
 
     const serviceClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: files } = await serviceClient.storage.from('receipts').list(user.id, { limit: 1000 });
-    if (files && files.length > 0) {
-      await serviceClient.storage.from('receipts').remove(files.map((f) => `${user.id}/${f.name}`));
-    }
+    // Оба бакета, а не только чеки: аватарки лежат в публичном бакете, и
+    // недоудалённый файл остался бы доступен по прямой ссылке навсегда —
+    // это прямое нарушение права на удаление данных.
+    await clearUserFolder(serviceClient, 'receipts', user.id);
+    await clearUserFolder(serviceClient, 'avatars', user.id);
 
     const { error: deleteError } = await serviceClient.auth.admin.deleteUser(user.id);
     if (deleteError) {
@@ -59,6 +60,41 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'Внутренняя ошибка сервера' }, 500);
   }
 });
+
+// Storage отдаёт файлы страницами, поэтому одного list() мало: у активного
+// пользователя чеков легко больше лимита, и «хвост» остался бы в хранилище
+// после удаления аккаунта.
+async function clearUserFolder(
+  serviceClient: ReturnType<typeof createClient>,
+  bucket: string,
+  userId: string,
+) {
+  const pageSize = 100;
+  // Всегда читаем первую страницу: после remove() выборка сдвигается, и
+  // наращивание offset пропускало бы файлы. Ограничитель нужен, чтобы
+  // молчаливый отказ удаления не превратился в бесконечный цикл.
+  for (let guard = 0; guard < 200; guard++) {
+    const { data: files, error } = await serviceClient.storage
+      .from(bucket)
+      .list(userId, { limit: pageSize });
+
+    if (error) {
+      console.error(`delete-account: не удалось прочитать ${bucket}`, error);
+      return;
+    }
+    if (!files || files.length === 0) return;
+
+    const { error: removeError } = await serviceClient.storage
+      .from(bucket)
+      .remove(files.map((file) => `${userId}/${file.name}`));
+
+    if (removeError) {
+      console.error(`delete-account: не удалось удалить файлы ${bucket}`, removeError);
+      return;
+    }
+  }
+  console.error(`delete-account: превышен лимит страниц при очистке ${bucket}`);
+}
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
