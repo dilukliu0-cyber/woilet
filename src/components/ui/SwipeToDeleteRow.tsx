@@ -88,7 +88,7 @@ export function SwipeToDeleteRow({ children, onDelete, style }: Props) {
         if (!splitting) measuredHeight.current = e.nativeEvent.layout.height;
       }}
     >
-      <View style={[styles.wrapper, style]}>
+      <View style={[styles.wrapper, splitting ? styles.wrapperSplitting : styles.wrapperClipped, style]}>
         <View style={styles.actionsBackdrop}>
           <Animated.View style={{ opacity: iconOpacity, transform: [{ scale: iconScale }] }}>
             <Trash2 color="#fff" size={22} />
@@ -144,6 +144,18 @@ const styles = StyleSheet.create({
   wrapper: {
     position: 'relative',
     width: '100%',
+  },
+  // В состоянии покоя враппер обрезан ровно по силуэту карточки — иначе
+  // красная подложка под ней (actionsBackdrop) и сама карточка скруглены
+  // независимо друг от друга и на реальном устройстве может проступать
+  // тонкий красный ободок по углам. Во время «расщепления» обрезку снимаем,
+  // иначе половинки чека не смогут вылететь за пределы строки.
+  wrapperClipped: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  wrapperSplitting: {
+    overflow: 'visible',
   },
   // Во всю ширину строки (а не узкая полоска у края) — так при любом
   // рассинхроне ширины карточки со враппером под ней никогда не мелькнёт
