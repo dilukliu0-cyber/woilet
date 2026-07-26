@@ -400,6 +400,12 @@ const ru = {
   subscription_payments_pending: 'Оплата подключится после публикации в магазинах. Пока доступен промокод.',
   subscription_active_since: 'Активна с {date}',
   subscription_active_promo: 'Доступ по промокоду',
+  subscription_autorenew:
+    'Подписка продлевается автоматически, пока вы её не отмените. Отменить можно в настройках магазина приложений не позднее чем за 24 часа до конца оплаченного периода.',
+  subscription_terms_link: 'Условия использования',
+  subscription_privacy_link: 'Конфиденциальность',
+  subscription_restore_found: 'Подписка восстановлена',
+  subscription_restore_none: 'Активных покупок не найдено',
 } as const;
 
 export type TranslationKey = keyof typeof ru;
@@ -776,6 +782,12 @@ const en: Dictionary = {
   subscription_payments_pending: 'Payments go live once the app is published. A promo code works today.',
   subscription_active_since: 'Active since {date}',
   subscription_active_promo: 'Access via promo code',
+  subscription_autorenew:
+    'The subscription renews automatically until you cancel it. Cancel in your app store settings at least 24 hours before the current period ends.',
+  subscription_terms_link: 'Terms of Use',
+  subscription_privacy_link: 'Privacy Policy',
+  subscription_restore_found: 'Subscription restored',
+  subscription_restore_none: 'No active purchases found',
 };
 
 const cs: Dictionary = {
@@ -1149,6 +1161,12 @@ const cs: Dictionary = {
   subscription_payments_pending: 'Platby budou po vydání aplikace. Zatím funguje promo kód.',
   subscription_active_since: 'Aktivní od {date}',
   subscription_active_promo: 'Přístup přes promo kód',
+  subscription_autorenew:
+    'Předplatné se automaticky obnovuje, dokud ho nezrušíte. Zrušit lze v nastavení obchodu s aplikacemi nejpozději 24 hodin před koncem období.',
+  subscription_terms_link: 'Podmínky použití',
+  subscription_privacy_link: 'Ochrana soukromí',
+  subscription_restore_found: 'Předplatné obnoveno',
+  subscription_restore_none: 'Nenalezeny žádné aktivní nákupy',
 };
 
 export const dictionaries: Record<Locale, Dictionary> = { ru, en, cs };

@@ -14,7 +14,8 @@ import {
   Zap,
 } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { hasLegalLinks, LEGAL_URLS } from '../../config/legal';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { TextField } from '../../components/ui/TextField';
@@ -77,6 +78,7 @@ export function SubscriptionScreen({ navigation }: Props) {
   const showToast = useToastStore((state) => state.show);
 
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('year');
+  const [restoring, setRestoring] = useState(false);
   const [promoOpen, setPromoOpen] = useState(false);
   const [promoCode, setPromoCode] = useState('');
   const [promoError, setPromoError] = useState<string | null>(null);
@@ -133,6 +135,26 @@ export function SubscriptionScreen({ navigation }: Props) {
     // Состояние перечитываем с сервера, а не выставляем локально: источник
     // истины — база, и экран сразу покажет реальный срок действия.
     await fetchSubscription(userId);
+  }
+
+  // Apple требует кнопку восстановления покупок на экране подписки. Пока
+  // магазинных покупок нет, восстанавливать нужно ровно то, что есть:
+  // состояние подписки на сервере — оно переживает переустановку и смену
+  // устройства. Когда появится StoreKit, сюда добавится и его restore.
+  async function handleRestore() {
+    if (!userId || restoring) return;
+    setRestoring(true);
+    await fetchSubscription(userId);
+    setRestoring(false);
+    const restored = useSubscriptionStore.getState().isPro;
+    haptics.light();
+    showToast(t(restored ? 'subscription_restore_found' : 'subscription_restore_none'));
+  }
+
+  function openLegal(url: string) {
+    // Ссылки рисуются только когда адрес задан, поэтому отдельного текста
+    // об ошибке нет: показывать пользователю нечего, а падать незачем.
+    if (url) Linking.openURL(url).catch(() => {});
   }
 
   function handlePurchase() {
@@ -280,6 +302,30 @@ export function SubscriptionScreen({ navigation }: Props) {
                 <Lock color={styles.mossIcon.color} size={12} strokeWidth={1.8} />
                 <Text style={styles.trustText}>{t('subscription_trust_secure')}</Text>
               </View>
+            </View>
+
+            {/* Обязательный блок для ревью магазинов: условия автопродления,
+                восстановление покупок и рабочие ссылки на документы. */}
+            <Text style={styles.autoRenew}>{t('subscription_autorenew')}</Text>
+
+            <View style={styles.legalRow}>
+              <Pressable onPress={handleRestore} hitSlop={8} disabled={restoring}>
+                <Text style={[styles.legalLink, restoring && styles.legalLinkMuted]}>
+                  {t('subscription_restore')}
+                </Text>
+              </Pressable>
+              {hasLegalLinks() && (
+                <>
+                  <View style={styles.legalDot} />
+                  <Pressable onPress={() => openLegal(LEGAL_URLS.terms)} hitSlop={8}>
+                    <Text style={styles.legalLink}>{t('subscription_terms_link')}</Text>
+                  </Pressable>
+                  <View style={styles.legalDot} />
+                  <Pressable onPress={() => openLegal(LEGAL_URLS.privacy)} hitSlop={8}>
+                    <Text style={styles.legalLink}>{t('subscription_privacy_link')}</Text>
+                  </Pressable>
+                </>
+              )}
             </View>
 
             {promoOpen ? (
@@ -687,10 +733,13 @@ const styles = themedStyles(() => {
       paddingHorizontal: 12,
     },
 
+    // Перенос нужен для узких экранов и укрупнённого системного шрифта:
+    // без него строка обрезается по краю.
     trustRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
+      flexWrap: 'wrap',
       gap: 10,
       marginTop: 16,
     },
@@ -707,6 +756,37 @@ const styles = themedStyles(() => {
       width: 1,
       height: 10,
       backgroundColor: hairline,
+    },
+
+    autoRenew: {
+      color: colors.textTertiary,
+      fontSize: 10.5,
+      lineHeight: 15,
+      textAlign: 'center',
+      marginTop: 18,
+      paddingHorizontal: 4,
+    },
+    legalRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginTop: 12,
+    },
+    legalLink: {
+      color: moss,
+      fontSize: 11.5,
+      fontWeight: '500',
+    },
+    legalLinkMuted: {
+      opacity: 0.5,
+    },
+    legalDot: {
+      width: 2,
+      height: 2,
+      borderRadius: 1,
+      backgroundColor: colors.textTertiary,
     },
 
     promoLinkWrap: {
