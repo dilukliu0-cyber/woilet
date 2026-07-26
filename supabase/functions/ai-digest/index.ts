@@ -12,6 +12,7 @@
 // Secret: тот же GEMINI_API_KEY, что и у scan-receipt / ai-chat.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { getEntitlement } from '../_shared/entitlement.ts';
 
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const DIGEST_INTERVAL_MS = 2 * 24 * 60 * 60 * 1000;
@@ -63,6 +64,17 @@ Deno.serve(async (req) => {
 
     if (userError || !user) {
       return jsonResponse({ error: 'Не авторизовано' }, 401);
+    }
+
+    const serviceClient = createClient(supabaseUrl, serviceRoleKey);
+
+    // Проактивный ИИ-разбор — функция Pro. Клиент дергает эту функцию при
+    // каждом открытии Главной, поэтому на бесплатном тарифе отвечаем обычным
+    // skipped (как при выключенных советах), а не ошибкой: иначе на Главной
+    // при каждом входе всплывал бы отказ.
+    const entitlement = await getEntitlement(serviceClient, user.id);
+    if (!entitlement.isPro) {
+      return jsonResponse({ skipped: true, reason: 'pro_required' });
     }
 
     const { data: settings } = await userClient
@@ -190,10 +202,10 @@ ${JSON.stringify(contextSummary)}`;
     const outputTokens = usage.candidatesTokenCount ?? 0;
     const estimatedCost = (inputTokens * 0.3 + outputTokens * 2.5) / 1_000_000;
 
-    const serviceClient = createClient(supabaseUrl, serviceRoleKey);
     await serviceClient.from('ai_api_usage').insert({
       user_id: user.id,
       model: GEMINI_MODEL,
+      kind: 'digest',
       input_tokens: inputTokens,
       output_tokens: outputTokens,
       estimated_cost: estimatedCost,

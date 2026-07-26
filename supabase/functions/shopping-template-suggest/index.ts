@@ -13,6 +13,7 @@
 // Secret: тот же GEMINI_API_KEY, что и у остальных функций.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { getEntitlement, proRequiredResponse } from '../_shared/entitlement.ts';
 
 const GEMINI_MODEL = 'gemini-2.5-flash';
 
@@ -60,6 +61,12 @@ Deno.serve(async (req) => {
       error: userError,
     } = await userClient.auth.getUser();
     if (userError || !user) return jsonResponse({ error: 'Не авторизовано' }, 401);
+
+    const serviceClient = createClient(supabaseUrl, serviceRoleKey);
+
+    // Подсказка состава шаблона — ИИ-функция, значит Pro.
+    const entitlement = await getEntitlement(serviceClient, user.id);
+    if (!entitlement.isPro) return proRequiredResponse(CORS_HEADERS);
 
     const { name } = await req.json();
     if (!name || typeof name !== 'string' || !name.trim()) {
@@ -126,10 +133,10 @@ ${JSON.stringify(uniqueProducts)}
     const inputTokens = usage.promptTokenCount ?? 0;
     const outputTokens = usage.candidatesTokenCount ?? 0;
     const estimatedCost = (inputTokens * 0.3 + outputTokens * 2.5) / 1_000_000;
-    const serviceClient = createClient(supabaseUrl, serviceRoleKey);
     await serviceClient.from('ai_api_usage').insert({
       user_id: user.id,
       model: GEMINI_MODEL,
+      kind: 'shopping',
       input_tokens: inputTokens,
       output_tokens: outputTokens,
       estimated_cost: estimatedCost,

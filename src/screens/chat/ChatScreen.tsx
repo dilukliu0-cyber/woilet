@@ -19,6 +19,8 @@ import { dictionaries } from '../../i18n/translations';
 import { useAuthStore } from '../../store/authStore';
 import { useChatStore } from '../../store/chatStore';
 import { useLocaleStore } from '../../store/localeStore';
+import { useSubscriptionStore } from '../../store/subscriptionStore';
+import { ProLockedView } from '../../components/subscription/ProLockedView';
 import { colors } from '../../theme/colors';
 import type { ChatMessage } from '../../types/chatMessage';
 import type { ReceiptRecord } from '../../types/receiptRecord';
@@ -43,6 +45,7 @@ export function ChatScreen() {
   const error = useChatStore((state) => state.error);
   const fetchHistory = useChatStore((state) => state.fetchHistory);
   const sendMessage = useChatStore((state) => state.sendMessage);
+  const isPro = useSubscriptionStore((state) => state.isPro);
 
   const [text, setText] = useState('');
   const [attached, setAttached] = useState<Attached | null>(null);
@@ -126,6 +129,13 @@ export function ChatScreen() {
         </View>
       </View>
 
+      {/* Бесплатный тариф: показываем объяснение вместо чата. Сервер всё
+          равно отказал бы (402), но лучше не давать написать сообщение
+          впустую. */}
+      {!isPro ? (
+        <ProLockedView description={t('subscription_locked_chat')} />
+      ) : (
+        <>
       <FlatList
         ref={listRef}
         data={reversedMessages}
@@ -182,6 +192,8 @@ export function ChatScreen() {
           <Send color={colors.background} size={18} />
         </Pressable>
       </View>
+        </>
+      )}
 
       <Modal visible={pickerVisible} transparent animationType="slide" onRequestClose={() => setPickerVisible(false)}>
         <Pressable style={styles.backdrop} onPress={() => setPickerVisible(false)}>

@@ -17,6 +17,7 @@
 // Secret: тот же GEMINI_API_KEY, что и у scan-receipt.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { getEntitlement, proRequiredResponse } from '../_shared/entitlement.ts';
 
 const GEMINI_MODEL = 'gemini-2.5-flash';
 
@@ -124,6 +125,15 @@ Deno.serve(async (req) => {
 
     if (userError || !user) {
       return jsonResponse({ error: 'Не авторизовано' }, 401);
+    }
+
+    const serviceClient = createClient(supabaseUrl, serviceRoleKey);
+
+    // ИИ-чат целиком входит в Pro. Проверяем до обращения к Gemini, чтобы
+    // отказ ничего не стоил.
+    const entitlement = await getEntitlement(serviceClient, user.id);
+    if (!entitlement.isPro) {
+      return proRequiredResponse(CORS_HEADERS);
     }
 
     const { message, receiptId, receiptLabel } = await req.json();
@@ -310,10 +320,10 @@ ${conversation || '(пусто)'}
     const outputTokens = usage.candidatesTokenCount ?? 0;
     const estimatedCost = (inputTokens * 0.3 + outputTokens * 2.5) / 1_000_000;
 
-    const serviceClient = createClient(supabaseUrl, serviceRoleKey);
     await serviceClient.from('ai_api_usage').insert({
       user_id: user.id,
       model: GEMINI_MODEL,
+      kind: 'chat',
       input_tokens: inputTokens,
       output_tokens: outputTokens,
       estimated_cost: estimatedCost,

@@ -324,6 +324,35 @@ const ru = {
   shopping_forgot_no: 'Нет, убрать',
   shopping_empty: 'Список пуст. Добавьте товар ниже или попросите в «ИИ-чате»: «сделай список для лазаньи».',
   shopping_add_placeholder: 'Добавить товар...',
+
+  // Подписка
+  subscription_title: 'Woilet Pro',
+  subscription_tagline: 'Полный контроль над расходами без ограничений',
+  subscription_active_title: 'Подписка активна',
+  subscription_active_until: 'Активна до {date}',
+  subscription_active_forever: 'Активна бессрочно',
+  subscription_feature_scans: 'Безлимитное сканирование чеков',
+  subscription_feature_scans_free: 'На бесплатном тарифе — {limit} сканов в месяц',
+  subscription_feature_chat: 'ИИ-чат: разбор трат и советы',
+  subscription_feature_family: 'Семейный аккаунт: общий бюджет',
+  subscription_feature_insights: 'Умные списки покупок и подсказки',
+  subscription_scans_left: 'Осталось сканов в этом месяце: {left} из {limit}',
+  subscription_scans_none: 'Бесплатные сканы на этот месяц закончились',
+  subscription_cta: 'Оформить подписку',
+  subscription_cta_soon: 'Оплата скоро появится',
+  subscription_not_ready:
+    'Оплата ещё не подключена — идёт публикация в магазинах приложений. Все функции Pro включатся здесь сразу после запуска.',
+  subscription_restore: 'Восстановить покупку',
+  subscription_manage: 'Управлять подпиской',
+  subscription_pro_badge: 'Pro',
+  subscription_locked_title: 'Функция Woilet Pro',
+  subscription_locked_chat: 'ИИ-чат разбирает ваши траты и отвечает на вопросы. Доступен по подписке Pro.',
+  subscription_locked_family: 'Семейный аккаунт объединяет расходы близких. Доступен по подписке Pro.',
+  subscription_locked_shopping: 'Умные подсказки для списка покупок доступны по подписке Pro.',
+  subscription_quota_title: 'Сканы закончились',
+  subscription_quota_body:
+    'В этом месяце вы использовали все {limit} бесплатных сканов. Оформите Pro для безлимита или добавьте расход вручную.',
+  subscription_learn_more: 'Подробнее о Pro',
 } as const;
 
 export type TranslationKey = keyof typeof ru;
@@ -625,6 +654,34 @@ const en: Dictionary = {
   shopping_forgot_no: 'No, remove',
   shopping_empty: 'The list is empty. Add an item below or ask the AI chat: "make a list for lasagna".',
   shopping_add_placeholder: 'Add an item...',
+
+  subscription_title: 'Woilet Pro',
+  subscription_tagline: 'Full control over your spending, without limits',
+  subscription_active_title: 'Subscription active',
+  subscription_active_until: 'Active until {date}',
+  subscription_active_forever: 'Active indefinitely',
+  subscription_feature_scans: 'Unlimited receipt scanning',
+  subscription_feature_scans_free: 'Free plan includes {limit} scans per month',
+  subscription_feature_chat: 'AI chat: spending analysis and advice',
+  subscription_feature_family: 'Family account: shared budget',
+  subscription_feature_insights: 'Smart shopping lists and suggestions',
+  subscription_scans_left: 'Scans left this month: {left} of {limit}',
+  subscription_scans_none: 'You have used all free scans this month',
+  subscription_cta: 'Subscribe',
+  subscription_cta_soon: 'Payments coming soon',
+  subscription_not_ready:
+    'Payments are not connected yet — the app is being published to the stores. All Pro features will unlock here as soon as it launches.',
+  subscription_restore: 'Restore purchase',
+  subscription_manage: 'Manage subscription',
+  subscription_pro_badge: 'Pro',
+  subscription_locked_title: 'Woilet Pro feature',
+  subscription_locked_chat: 'AI chat analyses your spending and answers questions. Available with Pro.',
+  subscription_locked_family: 'A family account combines everyone’s spending. Available with Pro.',
+  subscription_locked_shopping: 'Smart shopping list suggestions are available with Pro.',
+  subscription_quota_title: 'Out of scans',
+  subscription_quota_body:
+    'You have used all {limit} free scans this month. Get Pro for unlimited scanning, or add the expense manually.',
+  subscription_learn_more: 'Learn more about Pro',
 };
 
 const cs: Dictionary = {
@@ -923,6 +980,34 @@ const cs: Dictionary = {
   shopping_forgot_no: 'Ne, odebrat',
   shopping_empty: 'Seznam je prázdný. Přidejte položku níže nebo požádejte v „AI chatu“: „udělej seznam na lasagne“.',
   shopping_add_placeholder: 'Přidat položku...',
+
+  subscription_title: 'Woilet Pro',
+  subscription_tagline: 'Úplná kontrola nad výdaji bez omezení',
+  subscription_active_title: 'Předplatné je aktivní',
+  subscription_active_until: 'Aktivní do {date}',
+  subscription_active_forever: 'Aktivní bez omezení',
+  subscription_feature_scans: 'Neomezené skenování účtenek',
+  subscription_feature_scans_free: 'Ve verzi zdarma je {limit} skenů měsíčně',
+  subscription_feature_chat: 'AI chat: rozbor výdajů a rady',
+  subscription_feature_family: 'Rodinný účet: společný rozpočet',
+  subscription_feature_insights: 'Chytré nákupní seznamy a tipy',
+  subscription_scans_left: 'Zbývá skenů tento měsíc: {left} z {limit}',
+  subscription_scans_none: 'Skeny zdarma pro tento měsíc došly',
+  subscription_cta: 'Předplatit',
+  subscription_cta_soon: 'Platby budou brzy',
+  subscription_not_ready:
+    'Platby zatím nejsou připojené — aplikace se publikuje do obchodů. Všechny funkce Pro se tu odemknou hned po spuštění.',
+  subscription_restore: 'Obnovit nákup',
+  subscription_manage: 'Spravovat předplatné',
+  subscription_pro_badge: 'Pro',
+  subscription_locked_title: 'Funkce Woilet Pro',
+  subscription_locked_chat: 'AI chat rozebere vaše výdaje a odpoví na dotazy. Dostupné s předplatným Pro.',
+  subscription_locked_family: 'Rodinný účet spojuje výdaje blízkých. Dostupné s předplatným Pro.',
+  subscription_locked_shopping: 'Chytré tipy pro nákupní seznam jsou dostupné s předplatným Pro.',
+  subscription_quota_title: 'Skeny došly',
+  subscription_quota_body:
+    'Tento měsíc jste využili všech {limit} skenů zdarma. Pořiďte si Pro pro neomezené skenování, nebo přidejte výdaj ručně.',
+  subscription_learn_more: 'Více o Pro',
 };
 
 export const dictionaries: Record<Locale, Dictionary> = { ru, en, cs };

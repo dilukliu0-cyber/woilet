@@ -23,4 +23,5 @@ export type AppStackParamList = {
   AddIncome: undefined;
   IntroPreview: undefined;
   Profile: undefined;
+  Subscription: undefined;
 };

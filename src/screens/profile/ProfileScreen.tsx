@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Clipboard from 'expo-clipboard';
-import { ArrowLeft, Camera, LogOut, Pencil } from 'lucide-react-native';
+import { ArrowLeft, BadgeCheck, Camera, ChevronRight, LogOut, Pencil } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import {
   Alert,
@@ -27,6 +27,7 @@ import { useT } from '../../i18n/useT';
 import { LOCALES } from '../../i18n/translations';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import { FREE_SCAN_LIMIT, scansLeft, useSubscriptionStore } from '../../store/subscriptionStore';
 import { useToastStore } from '../../store/toastStore';
 import { CURRENCIES } from '../../utils/currencies';
 import { colors } from '../../theme/colors';
@@ -44,6 +45,9 @@ export function ProfileScreen() {
   const settings = useSettingsStore((state) => state.settings);
   const updateSettings = useSettingsStore((state) => state.updateSettings);
   const showToast = useToastStore((state) => state.show);
+  const isPro = useSubscriptionStore((state) => state.isPro);
+  const scansUsed = useSubscriptionStore((state) => state.scansUsed);
+  const proScansLeft = scansLeft(isPro, scansUsed) ?? 0;
 
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameDraft, setNicknameDraft] = useState('');
@@ -165,6 +169,28 @@ export function ProfileScreen() {
         <Pressable style={styles.idRow} onPress={copyId}>
           <Text style={styles.idLabel}>{t('profile_id_label')}</Text>
           <Text style={styles.idValue}>{userId}</Text>
+        </Pressable>
+
+        {/* Подписка: на бесплатном тарифе показываем остаток сканов, на Pro —
+            статус. Единственная точка входа в экран подписки. */}
+        <Pressable style={styles.proRow} onPress={() => rootNavigation()?.navigate('Subscription')}>
+          <View style={styles.proIcon}>
+            <BadgeCheck color={colors.accent} size={20} />
+          </View>
+          <View style={styles.proInfo}>
+            <Text style={styles.proTitle}>{t('subscription_title')}</Text>
+            <Text style={styles.proSubtitle}>
+              {isPro
+                ? t('subscription_active_title')
+                : proScansLeft === 0
+                  ? t('subscription_scans_none')
+                  : t('subscription_scans_left', {
+                      left: String(proScansLeft),
+                      limit: String(FREE_SCAN_LIMIT),
+                    })}
+            </Text>
+          </View>
+          <ChevronRight color={colors.textSecondary} size={18} />
         </Pressable>
 
         {/* Оформление: тема + язык интерфейса. */}
@@ -470,6 +496,37 @@ const styles = themedStyles(() => StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 11,
     fontFamily: 'monospace',
+  },
+  proRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.accentSoft,
+  },
+  proIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: colors.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  proInfo: {
+    flex: 1,
+  },
+  proTitle: {
+    color: colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  proSubtitle: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginTop: 2,
   },
   searchInput: {
     backgroundColor: colors.surface,

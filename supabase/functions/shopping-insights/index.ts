@@ -10,6 +10,7 @@
 // Secret: тот же GEMINI_API_KEY, что и у остальных функций.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { getEntitlement, proRequiredResponse } from '../_shared/entitlement.ts';
 
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const INSIGHT_INTERVAL_MS = 12 * 60 * 60 * 1000;
@@ -58,6 +59,13 @@ Deno.serve(async (req) => {
     } = await userClient.auth.getUser();
     if (userError || !user) return jsonResponse({ error: 'Не авторизовано' }, 401);
 
+    const serviceClient = createClient(supabaseUrl, serviceRoleKey);
+
+    // Советы по покупкам — ИИ-функция, значит Pro. Проверяем до чтения кэша:
+    // иначе отписавшийся пользователь продолжал бы получать старый ответ.
+    const entitlement = await getEntitlement(serviceClient, user.id);
+    if (!entitlement.isPro) return proRequiredResponse(CORS_HEADERS);
+
     const { runningOut, suggestions } = await req.json();
     const hasData =
       (Array.isArray(runningOut) && runningOut.length > 0) ||
@@ -72,8 +80,6 @@ Deno.serve(async (req) => {
     if (cached && Date.now() - new Date(cached.created_at).getTime() < INSIGHT_INTERVAL_MS) {
       return jsonResponse({ message: cached.message, cached: true });
     }
-
-    const serviceClient = createClient(supabaseUrl, serviceRoleKey);
 
     if (!hasData) {
       await serviceClient
@@ -124,6 +130,7 @@ Deno.serve(async (req) => {
     await serviceClient.from('ai_api_usage').insert({
       user_id: user.id,
       model: GEMINI_MODEL,
+      kind: 'shopping',
       input_tokens: inputTokens,
       output_tokens: outputTokens,
       estimated_cost: estimatedCost,

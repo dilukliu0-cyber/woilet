@@ -10,6 +10,7 @@
 //         Project Settings → Edge Functions → Secrets)
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { checkScanQuota } from '../_shared/entitlement.ts';
 
 // gemini-2.0-flash снят с поддержки Google (404 на generateContent), актуальная
 // дешёвая модель — 2.5-flash. У неё по умолчанию включён "thinking"-режим,
@@ -142,6 +143,24 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'Не авторизовано' }, 401);
     }
 
+    const serviceClient = createClient(supabaseUrl, serviceRoleKey);
+
+    // Квота бесплатного тарифа проверяется ДО обращения к Gemini — иначе
+    // превышение всё равно стоило бы денег. Клиент об этом лимите тоже знает
+    // и рисует счётчик, но решение принимается только здесь.
+    const quota = await checkScanQuota(serviceClient, user.id);
+    if (!quota.allowed) {
+      return jsonResponse(
+        {
+          error: 'Закончились бесплатные сканы в этом месяце',
+          code: 'quota_exceeded',
+          used: quota.used,
+          limit: quota.limit,
+        },
+        402,
+      );
+    }
+
     const { imageBase64, mimeType, language, translateItems } = await req.json();
     if (!imageBase64 || !mimeType) {
       return jsonResponse({ error: 'imageBase64 и mimeType обязательны' }, 400);
@@ -199,10 +218,12 @@ Deno.serve(async (req) => {
     // актуальный тариф на ai.google.dev/pricing, здесь грубая оценка для мониторинга.
     const estimatedCost = (inputTokens * 0.3 + outputTokens * 2.5) / 1_000_000;
 
-    const serviceClient = createClient(supabaseUrl, serviceRoleKey);
+    // kind='scan' — по этим записям считается месячная квота бесплатного
+    // тарифа (см. _shared/entitlement.ts).
     await serviceClient.from('ai_api_usage').insert({
       user_id: user.id,
       model: GEMINI_MODEL,
+      kind: 'scan',
       input_tokens: inputTokens,
       output_tokens: outputTokens,
       estimated_cost: estimatedCost,

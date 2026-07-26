@@ -12,6 +12,7 @@ import type { AppStackParamList } from './types';
 import { useAuthStore } from '../store/authStore';
 import { useLocaleStore } from '../store/localeStore';
 import { useSettingsStore } from '../store/settingsStore';
+import { useSubscriptionStore } from '../store/subscriptionStore';
 import { useThemeStore } from '../store/themeStore';
 import type { Locale } from '../i18n/translations';
 import { colors, getCurrentTheme, type ThemeName } from '../theme/colors';
@@ -64,6 +65,8 @@ export function RootNavigator() {
   const resetSettings = useSettingsStore((state) => state.reset);
   const setTheme = useThemeStore((state) => state.setTheme);
   const setLocale = useLocaleStore((state) => state.setLocale);
+  const fetchSubscription = useSubscriptionStore((state) => state.fetch);
+  const resetSubscription = useSubscriptionStore((state) => state.reset);
 
   useEffect(() => {
     init();
@@ -73,11 +76,13 @@ export function RootNavigator() {
   useEffect(() => {
     if (userId) {
       fetchSettings(userId);
+      fetchSubscription(userId);
       registerForPushNotifications(userId);
     } else {
       resetSettings();
+      resetSubscription();
     }
-  }, [userId, fetchSettings, resetSettings]);
+  }, [userId, fetchSettings, resetSettings, fetchSubscription, resetSubscription]);
 
   const themeSetting = settings?.theme;
   useEffect(() => {

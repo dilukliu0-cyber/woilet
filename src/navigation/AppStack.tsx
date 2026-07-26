@@ -9,6 +9,7 @@ import { ProductScreen } from '../screens/product/ProductScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
 import { ReceiptDetailScreen } from '../screens/receiptDetail/ReceiptDetailScreen';
 import { ScanScreen } from '../screens/scan/ScanScreen';
+import { SubscriptionScreen } from '../screens/subscription/SubscriptionScreen';
 import { MainTabs } from './MainTabs';
 import type { AppStackParamList } from './types';
 
@@ -28,6 +29,7 @@ export function AppStack() {
       <Stack.Screen name="AddIncome" component={AddIncomeScreen} />
       <Stack.Screen name="IntroPreview" component={IntroPreviewScreen} options={{ animation: 'fade' }} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="Subscription" component={SubscriptionScreen} />
     </Stack.Navigator>
   );
 }
