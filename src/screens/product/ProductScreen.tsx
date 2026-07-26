@@ -1,5 +1,6 @@
+import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Sparkline } from '../../components/charts/Sparkline';
 import { CategoryIcon } from '../../components/ui/CategoryIcon';
@@ -41,21 +42,26 @@ export function ProductScreen({ route, navigation }: Props) {
   const [purchases, setPurchases] = useState<PurchaseRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function load() {
-      if (!userId) return;
-      const { data } = await supabase
-        .from('receipt_items')
-        .select(
-          'price, quantity, weight_value, weight_unit, category_name, receipt:receipts(store_name, purchase_date, created_at, exchange_rate, base_currency, currency)',
-        )
-        .eq('user_id', userId)
-        .eq('cleaned_name', productName);
-      setPurchases(((data as unknown as PurchaseRow[]) ?? []).filter((p) => p.receipt));
-      setLoading(false);
-    }
-    load();
-  }, [userId, productName]);
+  // useFocusEffect, а не useEffect — та же причина, что в CategoryDetailScreen:
+  // без него список покупок не подхватывал только что отсканированный чек,
+  // если экран уже был в стеке для того же товара.
+  useFocusEffect(
+    useCallback(() => {
+      async function load() {
+        if (!userId) return;
+        const { data } = await supabase
+          .from('receipt_items')
+          .select(
+            'price, quantity, weight_value, weight_unit, category_name, receipt:receipts(store_name, purchase_date, created_at, exchange_rate, base_currency, currency)',
+          )
+          .eq('user_id', userId)
+          .eq('cleaned_name', productName);
+        setPurchases(((data as unknown as PurchaseRow[]) ?? []).filter((p) => p.receipt));
+        setLoading(false);
+      }
+      load();
+    }, [userId, productName]),
+  );
 
   const derived = useMemo(() => {
     const currency = purchases[0]?.receipt?.base_currency ?? purchases[0]?.receipt?.currency ?? '';

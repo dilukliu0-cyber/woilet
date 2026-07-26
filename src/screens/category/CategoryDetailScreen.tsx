@@ -1,5 +1,6 @@
+import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AnimatedProgressBar } from '../../components/ui/AnimatedProgressBar';
 import { CategoryIcon } from '../../components/ui/CategoryIcon';
@@ -40,25 +41,32 @@ export function CategoryDetailScreen({ route, navigation }: Props) {
   const [currency, setCurrency] = useState('');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function load() {
-      if (!userId) return;
-      fetchLimits(userId);
-      const [{ data }, breakdown] = await Promise.all([
-        supabase
-          .from('receipt_items')
-          .select('cleaned_name, price, quantity, weight_value, weight_unit, receipt:receipts(exchange_rate)')
-          .eq('user_id', userId)
-          .eq('category_name', categoryName),
-        fetchMonthlyCategoryBreakdown(userId),
-      ]);
-      setRows(((data as unknown as ProductRow[]) ?? []).filter((r) => r.receipt));
-      setTotalAll(breakdown.entries.reduce((sum, e) => sum + e.total, 0));
-      setCurrency(breakdown.currency);
-      setLoading(false);
-    }
-    load();
-  }, [userId, categoryName, fetchLimits]);
+  // useFocusEffect, а не useEffect: если категорию открыть повторно (в т.ч.
+  // после только что отсканированного чека), React Navigation при navigate()
+  // на тот же route может вернуть на уже смонтированный экран вместо нового
+  // — без этого список товаров оставался бы старым, не увидев новую покупку.
+  useFocusEffect(
+    useCallback(() => {
+      async function load() {
+        if (!userId) return;
+        fetchLimits(userId);
+        const [{ data }, breakdown] = await Promise.all([
+          supabase
+            .from('receipt_items')
+            .select('cleaned_name, price, quantity, weight_value, weight_unit, receipt:receipts(exchange_rate)')
+            .eq('user_id', userId)
+            .eq('category_name', categoryName),
+          fetchMonthlyCategoryBreakdown(userId),
+        ]);
+        setRows(((data as unknown as ProductRow[]) ?? []).filter((r) => r.receipt));
+        setTotalAll(breakdown.entries.reduce((sum, e) => sum + e.total, 0));
+        setCurrency(breakdown.currency);
+        setLoading(false);
+      }
+      load();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userId, categoryName]),
+  );
 
   const categoryTotal = rows.reduce((sum, r) => sum + r.price * (r.receipt?.exchange_rate ?? 1), 0);
   const percentOfAll = totalAll > 0 ? (categoryTotal / totalAll) * 100 : 0;
