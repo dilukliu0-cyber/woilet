@@ -299,7 +299,6 @@ const ru = {
   // Категория (детали)
   category_detail_percent_of_all: '{percent}% от всех расходов',
   category_detail_limit_percent: '{percent}% от лимита ({amount} {currency})',
-  category_detail_daily_trend: 'Тренд по дням',
   category_detail_popular_products: 'Все товары',
   category_detail_purchase_singular: 'покупка',
   category_detail_purchase_plural: 'покупок',
@@ -600,7 +599,6 @@ const en: Dictionary = {
 
   category_detail_percent_of_all: '{percent}% of all spending',
   category_detail_limit_percent: '{percent}% of limit ({amount} {currency})',
-  category_detail_daily_trend: 'Daily trend',
   category_detail_popular_products: 'All items',
   category_detail_purchase_singular: 'purchase',
   category_detail_purchase_plural: 'purchases',
@@ -896,7 +894,6 @@ const cs: Dictionary = {
 
   category_detail_percent_of_all: '{percent} % ze všech výdajů',
   category_detail_limit_percent: '{percent} % limitu ({amount} {currency})',
-  category_detail_daily_trend: 'Trend podle dnů',
   category_detail_popular_products: 'Všechny položky',
   category_detail_purchase_singular: 'nákup',
   category_detail_purchase_plural: 'nákupů',
