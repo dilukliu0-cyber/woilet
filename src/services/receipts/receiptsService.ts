@@ -195,13 +195,15 @@ type AddManualExpenseInput = {
   storeName: string | null;
   quantity: number;
   currency: string;
+  // YYYY-MM-DD. Не задана — считаем, что покупка сегодняшняя.
+  purchaseDate?: string;
 };
 
 export async function addManualExpense(
   userId: string,
   input: AddManualExpenseInput,
 ): Promise<{ error: string | null }> {
-  const today = new Date().toISOString().slice(0, 10);
+  const purchaseDate = input.purchaseDate ?? new Date().toISOString().slice(0, 10);
   const total = input.price * input.quantity;
 
   const { data: receipt, error: receiptError } = await supabase
@@ -211,7 +213,7 @@ export async function addManualExpense(
       image_path: null,
       source: 'manual',
       store_name: input.storeName,
-      purchase_date: today,
+      purchase_date: purchaseDate,
       currency: input.currency,
       total_amount: total,
       status: 'recognized',
