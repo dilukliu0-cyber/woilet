@@ -6,6 +6,7 @@ import { AnimatedProgressBar } from '../../components/ui/AnimatedProgressBar';
 import { CategoryIcon } from '../../components/ui/CategoryIcon';
 import { FadeInView } from '../../components/ui/FadeInView';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { Sparkline } from '../../components/charts/Sparkline';
 import { useT } from '../../i18n/useT';
 import { translateCategoryName } from '../../i18n/translations';
 import type { AppStackParamList } from '../../navigation/types';
@@ -23,8 +24,13 @@ type ProductRow = {
   quantity: number;
   weight_value: number | null;
   weight_unit: string | null;
-  receipt: { exchange_rate: number | null } | null;
+  receipt: { exchange_rate: number | null; purchase_date: string | null; created_at: string } | null;
 };
+
+function isSameMonth(dateStr: string | null, createdAt: string, now: Date) {
+  const d = dateStr ? new Date(dateStr) : new Date(createdAt);
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+}
 
 type Props = NativeStackScreenProps<AppStackParamList, 'Category'>;
 
@@ -53,12 +59,18 @@ export function CategoryDetailScreen({ route, navigation }: Props) {
         const [{ data }, breakdown] = await Promise.all([
           supabase
             .from('receipt_items')
-            .select('cleaned_name, price, quantity, weight_value, weight_unit, receipt:receipts(exchange_rate)')
+            .select(
+              'cleaned_name, price, quantity, weight_value, weight_unit, receipt:receipts(exchange_rate, purchase_date, created_at)',
+            )
             .eq('user_id', userId)
             .eq('category_name', categoryName),
           fetchMonthlyCategoryBreakdown(userId),
         ]);
-        setRows(((data as unknown as ProductRow[]) ?? []).filter((r) => r.receipt));
+        const now = new Date();
+        const monthRows = ((data as unknown as ProductRow[]) ?? []).filter(
+          (r) => r.receipt && isSameMonth(r.receipt.purchase_date, r.receipt.created_at, now),
+        );
+        setRows(monthRows);
         setTotalAll(breakdown.entries.reduce((sum, e) => sum + e.total, 0));
         setCurrency(breakdown.currency);
         setLoading(false);
@@ -73,6 +85,9 @@ export function CategoryDetailScreen({ route, navigation }: Props) {
   const limit = limits.find((l) => l.category_name === categoryName);
   const limitPercent = limit && limit.amount > 0 ? (categoryTotal / limit.amount) * 100 : 0;
 
+  // Раньше обрезалось до топ-5 («Популярные товары») — пользователь
+  // ожидает видеть тут ВСЁ, что куплено в категории, не только самое
+  // дорогое, поэтому список больше не режется.
   const popular = useMemo(() => {
     const byName = new Map<string, { total: number; count: number; weight: number; weightUnit: string | null }>();
     for (const row of rows) {
@@ -85,8 +100,19 @@ export function CategoryDetailScreen({ route, navigation }: Props) {
     }
     return [...byName.entries()]
       .map(([name, v]) => ({ name, ...v }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 5);
+      .sort((a, b) => b.total - a.total);
+  }, [rows]);
+
+  const dailySeries = useMemo(() => {
+    const now = new Date();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const series = new Array(daysInMonth).fill(0);
+    for (const row of rows) {
+      if (!row.receipt) continue;
+      const d = row.receipt.purchase_date ? new Date(row.receipt.purchase_date) : new Date(row.receipt.created_at);
+      series[d.getDate() - 1] += row.price * (row.receipt.exchange_rate ?? 1);
+    }
+    return series;
   }, [rows]);
 
   if (loading) {
@@ -116,8 +142,19 @@ export function CategoryDetailScreen({ route, navigation }: Props) {
           </View>
         </FadeInView>
 
-        {limit && (
+        {dailySeries.some((v) => v > 0) && (
           <FadeInView index={1}>
+            <View style={styles.chartCard}>
+              <Text style={styles.sectionTitle}>{t('category_detail_daily_trend')}</Text>
+              <View style={styles.chartWrap}>
+                <Sparkline data={dailySeries} width={280} height={80} color={color} />
+              </View>
+            </View>
+          </FadeInView>
+        )}
+
+        {limit && (
+          <FadeInView index={2}>
             <View style={styles.limitCard}>
               <Text style={styles.limitLabel}>
                 {t('category_detail_limit_percent', {
@@ -194,6 +231,16 @@ const styles = themedStyles(() => StyleSheet.create({
   percentOfAll: {
     color: colors.textSecondary,
     fontSize: 13,
+  },
+  chartCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    gap: 8,
+  },
+  chartWrap: {
+    alignItems: 'center',
+    marginVertical: 4,
   },
   limitCard: {
     backgroundColor: colors.surface,
