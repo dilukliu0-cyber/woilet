@@ -1,7 +1,7 @@
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ArrowLeft, Check, Sparkles } from 'lucide-react-native';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -20,7 +20,7 @@ import type { AppStackParamList } from '../../navigation/types';
 import {
   fetchFrequentItems,
   fetchRecentStores,
-  guessCategory,
+  predictCategories,
   type FrequentItem,
 } from '../../services/expenses/manualEntrySuggestions';
 import { addManualExpense } from '../../services/receipts/receiptsService';
@@ -67,8 +67,28 @@ export function AddExpenseScreen({ navigation }: Props) {
   // Категорию подставили сами — показываем подпись и не перетираем ручной
   // выбор пользователя при дальнейшем наборе названия.
   const [categoryAutoPicked, setCategoryAutoPicked] = useState(false);
+  // Полная сетка категорий скрыта по умолчанию: обычно хватает предложенных
+  // вариантов, а пятнадцать плиток на каждый расход — лишний выбор.
+  const [allCategoriesOpen, setAllCategoriesOpen] = useState(false);
 
   const priceRef = useRef<TextInput>(null);
+
+  const categoryNames = useMemo(() => categories.map((c) => c.name), [categories]);
+
+  // Предложения пересчитываются на лету: пока поле пустое — самые
+  // используемые категории, как только появляется название — угаданные.
+  const suggestions = useMemo(
+    () => predictCategories(name, frequent, categoryNames, 3),
+    [name, frequent, categoryNames],
+  );
+
+  // Выбранная вручную категория не должна пропадать из виду, если её нет
+  // среди предложенных.
+  const shownCategories = useMemo(() => {
+    const names = suggestions.map((s) => s.category);
+    if (categoryName && !names.includes(categoryName)) names.unshift(categoryName);
+    return names;
+  }, [suggestions, categoryName]);
 
   useFocusEffect(
     useCallback(() => {
@@ -90,9 +110,9 @@ export function AddExpenseScreen({ navigation }: Props) {
     setName(value);
     // Автоподбор работает, пока пользователь не выбрал категорию руками.
     if (categoryName && !categoryAutoPicked) return;
-    const guess = guessCategory(value, frequent);
-    if (guess) {
-      setCategoryName(guess);
+    const [best] = predictCategories(value, frequent, categoryNames, 1);
+    if (best) {
+      setCategoryName(best.category);
       setCategoryAutoPicked(true);
     } else if (categoryAutoPicked) {
       setCategoryName(null);
@@ -298,31 +318,67 @@ export function AddExpenseScreen({ navigation }: Props) {
             </View>
           )}
         </View>
-        <View style={styles.grid}>
-          {categories.map((category) => {
-            const Icon = getCategoryIcon(category.icon);
-            const selected = categoryName === category.name;
-            return (
-              <Pressable
-                key={category.id}
-                style={[styles.tile, selected && styles.tileSelected]}
-                onPress={() => pickCategory(category.name)}
-              >
-                <View style={styles.tileIconWrap}>
-                  <Icon color={selected ? colors.accent : colors.textSecondary} size={20} />
-                  {selected && (
-                    <View style={styles.tileCheck}>
-                      <Check color={colors.background} size={10} />
-                    </View>
-                  )}
-                </View>
-                <Text style={styles.tileLabel} numberOfLines={2}>
-                  {translateCategoryName(category.name, locale)}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        {/* Сначала — только угаданные варианты. Полная сетка появляется
+            по запросу, если система не угадала. */}
+        {!allCategoriesOpen && shownCategories.length > 0 && (
+          <View style={styles.chipRow}>
+            {shownCategories.map((categoryValue) => {
+              const category = categories.find((c) => c.name === categoryValue);
+              const Icon = getCategoryIcon(category?.icon ?? 'ellipsis');
+              const selected = categoryName === categoryValue;
+              return (
+                <Pressable
+                  key={categoryValue}
+                  style={[styles.categoryChip, selected && styles.chipSelected]}
+                  onPress={() => pickCategory(categoryValue)}
+                >
+                  <Icon color={selected ? colors.accent : colors.textSecondary} size={16} />
+                  <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+                    {translateCategoryName(categoryValue, locale)}
+                  </Text>
+                  {selected && <Check color={colors.accent} size={14} />}
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+
+        {allCategoriesOpen && (
+          <View style={styles.grid}>
+            {categories.map((category) => {
+              const Icon = getCategoryIcon(category.icon);
+              const selected = categoryName === category.name;
+              return (
+                <Pressable
+                  key={category.id}
+                  style={[styles.tile, selected && styles.tileSelected]}
+                  onPress={() => {
+                    pickCategory(category.name);
+                    setAllCategoriesOpen(false);
+                  }}
+                >
+                  <View style={styles.tileIconWrap}>
+                    <Icon color={selected ? colors.accent : colors.textSecondary} size={20} />
+                    {selected && (
+                      <View style={styles.tileCheck}>
+                        <Check color={colors.background} size={10} />
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.tileLabel} numberOfLines={2}>
+                    {translateCategoryName(category.name, locale)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+
+        <Pressable onPress={() => setAllCategoriesOpen((open) => !open)} hitSlop={6}>
+          <Text style={styles.linkText}>
+            {allCategoriesOpen ? t('add_expense_category_collapse') : t('add_expense_category_other')}
+          </Text>
+        </Pressable>
 
         {error && <Text style={styles.errorText}>{error}</Text>}
 
@@ -433,6 +489,23 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   chipTextSelected: {
     color: colors.accent,
+  },
+  categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  linkText: {
+    color: colors.accent,
+    fontSize: 13,
+    fontWeight: '500',
+    paddingVertical: 2,
   },
   categoryHeader: {
     flexDirection: 'row',

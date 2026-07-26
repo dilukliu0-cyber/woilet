@@ -267,6 +267,8 @@ const ru = {
   add_expense_save_and_more: 'Сохранить и добавить ещё',
   add_expense_quantity_short: 'Кол-во',
   add_expense_free_hint: 'Ручной ввод не тратит бесплатные сканы',
+  add_expense_category_other: 'Другая категория',
+  add_expense_category_collapse: 'Свернуть',
 
   // Добавить доход
   add_income_title: 'Добавить доход',
@@ -615,6 +617,8 @@ const en: Dictionary = {
   add_expense_save_and_more: 'Save and add another',
   add_expense_quantity_short: 'Qty',
   add_expense_free_hint: 'Manual entry does not use your free scans',
+  add_expense_category_other: 'Another category',
+  add_expense_category_collapse: 'Collapse',
 
   add_income_title: 'Add income',
   add_income_amount_label: 'Amount ({currency})',
@@ -953,6 +957,8 @@ const cs: Dictionary = {
   add_expense_save_and_more: 'Uložit a přidat další',
   add_expense_quantity_short: 'Počet',
   add_expense_free_hint: 'Ruční zadání nespotřebovává skeny zdarma',
+  add_expense_category_other: 'Jiná kategorie',
+  add_expense_category_collapse: 'Sbalit',
 
   add_income_title: 'Přidat příjem',
   add_income_amount_label: 'Částka ({currency})',
