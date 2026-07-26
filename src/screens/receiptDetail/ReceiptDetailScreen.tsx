@@ -1,11 +1,13 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ArrowLeft, Receipt as ReceiptIcon, RotateCw, Trash2, X } from 'lucide-react-native';
+import { ArrowLeft, RotateCw, Trash2, X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CategoryIcon } from '../../components/ui/CategoryIcon';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SelectableRow } from '../../components/ui/SelectableRow';
 import { TextField } from '../../components/ui/TextField';
+import { DigitalReceipt } from '../../components/receipt/DigitalReceipt';
+import { MiniReceiptThumb } from '../../components/receipt/MiniReceiptThumb';
 import { useT } from '../../i18n/useT';
 import { translateCategoryName, type TranslationKey } from '../../i18n/translations';
 import type { AppStackParamList } from '../../navigation/types';
@@ -45,6 +47,7 @@ export function ReceiptDetailScreen({ route, navigation }: Props) {
   const [editing, setEditing] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [showOriginal, setShowOriginal] = useState(false);
   const [editingItem, setEditingItem] = useState<ReceiptItemRecord | null>(null);
   const [editName, setEditName] = useState('');
   const [editPrice, setEditPrice] = useState('');
@@ -164,15 +167,14 @@ export function ReceiptDetailScreen({ route, navigation }: Props) {
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.summaryCard}>
-          {imageUrl ? (
-            <Pressable onPress={() => setViewerOpen(true)}>
-              <Image source={{ uri: imageUrl }} style={styles.thumbnail} resizeMode="cover" />
-            </Pressable>
-          ) : (
-            <View style={styles.thumbnailPlaceholder}>
-              <ReceiptIcon color={colors.textSecondary} size={22} />
-            </View>
-          )}
+          <Pressable
+            onPress={() => {
+              setShowOriginal(false);
+              setViewerOpen(true);
+            }}
+          >
+            <MiniReceiptThumb width={64} height={84} />
+          </Pressable>
           <View style={styles.summaryInfo}>
             <Text style={styles.storeName}>{receipt.store_name || t('receipt_store_unknown')}</Text>
             {receipt.store_address && <Text style={styles.storeAddress}>{receipt.store_address}</Text>}
@@ -287,7 +289,35 @@ export function ReceiptDetailScreen({ route, navigation }: Props) {
 
       <Modal visible={viewerOpen} transparent animationType="fade" onRequestClose={() => setViewerOpen(false)}>
         <Pressable style={styles.viewerBackdrop} onPress={() => setViewerOpen(false)}>
-          {imageUrl && <Image source={{ uri: imageUrl }} style={styles.viewerImage} resizeMode="contain" />}
+          {showOriginal && imageUrl ? (
+            <Image source={{ uri: imageUrl }} style={styles.viewerImage} resizeMode="contain" />
+          ) : (
+            <Pressable style={styles.viewerContent} onPress={(e) => e.stopPropagation()}>
+              <ScrollView contentContainerStyle={styles.viewerScrollContent}>
+                <DigitalReceipt
+                  storeName={receipt.store_name || t('receipt_store_unknown')}
+                  storeAddress={receipt.store_address}
+                  purchaseDate={receipt.purchase_date}
+                  purchaseTime={receipt.purchase_time}
+                  items={items.map((item) => ({
+                    name: item.cleaned_name,
+                    price: item.price,
+                    quantity: item.quantity,
+                  }))}
+                  total={receipt.total_amount ?? 0}
+                  currency={receipt.currency}
+                  totalLabel={t('receipt_detail_total_label')}
+                />
+              </ScrollView>
+            </Pressable>
+          )}
+          {imageUrl && (
+            <Pressable style={styles.viewerToggle} onPress={() => setShowOriginal((v) => !v)}>
+              <Text style={styles.viewerToggleText}>
+                {showOriginal ? t('receipt_detail_show_rewritten') : t('receipt_detail_show_original')}
+              </Text>
+            </Pressable>
+          )}
           <Pressable style={styles.viewerClose} onPress={() => setViewerOpen(false)}>
             <X color={colors.textPrimary} size={22} />
           </Pressable>
@@ -343,25 +373,31 @@ const styles = themedStyles(() => StyleSheet.create({
     gap: 16,
     paddingBottom: 40,
   },
-  thumbnail: {
-    width: 64,
-    height: 84,
-    borderRadius: 10,
-    backgroundColor: colors.surfaceElevated,
-  },
-  thumbnailPlaceholder: {
-    width: 64,
-    height: 84,
-    borderRadius: 10,
-    backgroundColor: colors.surfaceElevated,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   viewerBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.92)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  viewerContent: {
+    width: '88%',
+    maxWidth: 380,
+    maxHeight: '78%',
+  },
+  viewerScrollContent: {
+    paddingVertical: 4,
+  },
+  viewerToggle: {
+    marginTop: 18,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+  },
+  viewerToggleText: {
+    color: colors.accent,
+    fontSize: 13,
+    fontWeight: '600',
   },
   viewerImage: {
     width: '100%',

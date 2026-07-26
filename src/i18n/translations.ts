@@ -283,6 +283,9 @@ const ru = {
   receipt_detail_rescan_confirm_action: 'Перезаписать',
   receipt_detail_status_processing: 'Обрабатывается…',
   receipt_detail_status_error: 'Не распознано',
+  receipt_detail_total_label: 'ИТОГО',
+  receipt_detail_show_original: 'Показать оригинал фото',
+  receipt_detail_show_rewritten: 'Показать переписанный чек',
 
   // Товар
   product_purchases_label: 'Покупок',
@@ -585,6 +588,9 @@ const en: Dictionary = {
   receipt_detail_rescan_confirm_action: 'Re-scan',
   receipt_detail_status_processing: 'Processing…',
   receipt_detail_status_error: 'Not recognized',
+  receipt_detail_total_label: 'TOTAL',
+  receipt_detail_show_original: 'Show original photo',
+  receipt_detail_show_rewritten: 'Show rewritten receipt',
 
   product_purchases_label: 'Purchases',
   product_quantity_label: 'Quantity',
@@ -880,6 +886,9 @@ const cs: Dictionary = {
   receipt_detail_rescan_confirm_action: 'Přepsat',
   receipt_detail_status_processing: 'Zpracovává se…',
   receipt_detail_status_error: 'Nerozpoznáno',
+  receipt_detail_total_label: 'CELKEM',
+  receipt_detail_show_original: 'Zobrazit původní fotku',
+  receipt_detail_show_rewritten: 'Zobrazit přepsanou účtenku',
 
   product_purchases_label: 'Nákupů',
   product_quantity_label: 'Množství',

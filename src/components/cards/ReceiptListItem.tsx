@@ -1,9 +1,8 @@
-import { Receipt as ReceiptIcon, RefreshCw } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { RefreshCw } from 'lucide-react-native';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useT } from '../../i18n/useT';
 import type { TranslationKey } from '../../i18n/translations';
-import { getReceiptImageUrl } from '../../services/receipts/receiptImage';
+import { MiniReceiptThumb } from '../receipt/MiniReceiptThumb';
 import { colors } from '../../theme/colors';
 import type { ReceiptRecord, ReceiptStatus } from '../../types/receiptRecord';
 import { themedStyles } from '../../theme/themedStyles';
@@ -49,28 +48,11 @@ export function ReceiptListItem({
   onRescan,
 }: Props) {
   const t = useT();
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    getReceiptImageUrl(receipt.image_path).then((url) => {
-      if (!cancelled) setImageUrl(url);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [receipt.image_path]);
 
   return (
     <Pressable style={[styles.card, style]} onPress={onPress}>
       <View style={styles.thumbnailWrap}>
-        <View style={styles.thumbnail}>
-          {imageUrl ? (
-            <Image source={{ uri: imageUrl }} style={styles.thumbnailImage} />
-          ) : (
-            <ReceiptIcon color={colors.textSecondary} size={20} />
-          )}
-        </View>
+        <MiniReceiptThumb width={48} height={60} />
         {ownerAvatarUrl && <Image source={{ uri: ownerAvatarUrl }} style={styles.ownerAvatar} />}
         {!ownerAvatarUrl && ownerName && (
           <View style={styles.ownerAvatarFallback}>
@@ -123,15 +105,6 @@ const styles = themedStyles(() => StyleSheet.create({
     width: 48,
     height: 60,
   },
-  thumbnail: {
-    width: 48,
-    height: 60,
-    borderRadius: 10,
-    backgroundColor: colors.surfaceElevated,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
   ownerAvatar: {
     position: 'absolute',
     right: -6,
@@ -160,10 +133,6 @@ const styles = themedStyles(() => StyleSheet.create({
     color: colors.accent,
     fontSize: 10,
     fontWeight: '700',
-  },
-  thumbnailImage: {
-    width: '100%',
-    height: '100%',
   },
   cardInfo: {
     flex: 1,
