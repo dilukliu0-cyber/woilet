@@ -15,7 +15,6 @@ export type AppStackParamList = {
   Tabs: undefined;
   Scan: undefined;
   ReceiptDetail: { receiptId: string };
-  Limits: undefined;
   Categories: undefined;
   AddExpense: undefined;
   Product: { productName: string };

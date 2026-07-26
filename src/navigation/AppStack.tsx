@@ -5,7 +5,6 @@ import { CategoriesScreen } from '../screens/categories/CategoriesScreen';
 import { FamilyScreen } from '../screens/family/FamilyScreen';
 import { AddIncomeScreen } from '../screens/income/AddIncomeScreen';
 import { IntroPreviewScreen } from '../screens/onboarding/IntroScreen';
-import { LimitsScreen } from '../screens/limits/LimitsScreen';
 import { ProductScreen } from '../screens/product/ProductScreen';
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
 import { ReceiptDetailScreen } from '../screens/receiptDetail/ReceiptDetailScreen';
@@ -21,7 +20,6 @@ export function AppStack() {
       <Stack.Screen name="Tabs" component={MainTabs} />
       <Stack.Screen name="Scan" component={ScanScreen} />
       <Stack.Screen name="ReceiptDetail" component={ReceiptDetailScreen} />
-      <Stack.Screen name="Limits" component={LimitsScreen} />
       <Stack.Screen name="Categories" component={CategoriesScreen} />
       <Stack.Screen name="AddExpense" component={AddExpenseScreen} />
       <Stack.Screen name="Product" component={ProductScreen} />

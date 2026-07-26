@@ -1,5 +1,4 @@
 import { useFocusEffect } from '@react-navigation/native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ArrowLeft, Check, Plus, Trash2 } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -10,7 +9,6 @@ import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { TextField } from '../../components/ui/TextField';
 import { useT } from '../../i18n/useT';
 import { translateCategoryName } from '../../i18n/translations';
-import type { AppStackParamList } from '../../navigation/types';
 import { fetchCategoryMonthlyAverage, fetchMonthlyCategoryBreakdown } from '../../services/analytics/categoryBreakdown';
 import { useAuthStore } from '../../store/authStore';
 import { useLimitsStore } from '../../store/limitsStore';
@@ -21,9 +19,9 @@ import { CATEGORY_ICON_BY_NAME, CATEGORY_NAMES } from '../../utils/categoryIconM
 import { getCategoryIcon } from '../../utils/categoryIcons';
 import { themedStyles } from '../../theme/themedStyles';
 
-type Props = NativeStackScreenProps<AppStackParamList, 'Limits'>;
+type Props = { onBack: () => void };
 
-export function LimitsScreen({ navigation }: Props) {
+export function LimitsScreen({ onBack }: Props) {
   const t = useT();
   const locale = useLocaleStore((state) => state.locale);
   const userId = useAuthStore((state) => state.session?.user.id);
@@ -103,7 +101,7 @@ export function LimitsScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.topBar}>
-        <Pressable style={styles.iconButton} onPress={() => navigation.goBack()}>
+        <Pressable style={styles.iconButton} onPress={onBack}>
           <ArrowLeft color={colors.textPrimary} size={22} />
         </Pressable>
         <Text style={styles.topTitle}>{t('limits_title')}</Text>

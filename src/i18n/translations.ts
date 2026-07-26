@@ -157,6 +157,7 @@ const ru = {
   expenses_retry_read: 'Прочитать снова',
   expenses_limit_exceeded: 'Лимит «{category}» превышен — что с этим делать?',
   expenses_limit_near: 'Я близок к лимиту «{category}» ({percent}%) — как сэкономить?',
+  expenses_limits_link: 'Лимиты и бюджет',
 
   // Карточка чека
   receipt_status_processing: 'Обрабатывается',
@@ -466,6 +467,7 @@ const en: Dictionary = {
   expenses_retry_read: 'Try again',
   expenses_limit_exceeded: 'The "{category}" limit is exceeded — what should I do about it?',
   expenses_limit_near: 'I\'m close to the "{category}" limit ({percent}%) — how can I save?',
+  expenses_limits_link: 'Limits and budget',
 
   receipt_status_processing: 'Processing',
   receipt_status_recognized: 'Recognized',
@@ -760,6 +762,7 @@ const cs: Dictionary = {
   expenses_retry_read: 'Přečíst znovu',
   expenses_limit_exceeded: 'Limit „{category}“ je překročen — co s tím uděláme?',
   expenses_limit_near: 'Blížím se limitu „{category}“ ({percent}%) — jak ušetřit?',
+  expenses_limits_link: 'Limity a rozpočet',
 
   receipt_status_processing: 'Zpracovává se',
   receipt_status_recognized: 'Rozpoznáno',

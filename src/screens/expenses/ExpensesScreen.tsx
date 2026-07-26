@@ -37,6 +37,7 @@ import {
 } from 'react-native';
 import { DonutChart, type DonutSegment } from '../../components/charts/DonutChart';
 import { ReceiptListItem } from '../../components/cards/ReceiptListItem';
+import { LimitsScreen } from '../limits/LimitsScreen';
 import { AnimatedNumber } from '../../components/ui/AnimatedNumber';
 import { FadeInView } from '../../components/ui/FadeInView';
 import { ProfileMenuButton } from '../../components/ui/ProfileMenuButton';
@@ -135,6 +136,25 @@ export function ExpensesScreen() {
   // и низ задней стороны может обрезаться. Меряем переднюю и фиксируем
   // этой же высотой весь контейнер, чтобы все три грани были одного размера.
   const [cardHeight, setCardHeight] = useState<number | null>(null);
+
+  // Лимиты открываются не отдельным экраном, а разворотом карточки
+  // расходов на весь экран поверх этого же экрана (см. рендер overlay
+  // в конце компонента) — так «блок расходов» визуально растягивается,
+  // а не просто уводит на другой слайд стека.
+  const [limitsOpen, setLimitsOpen] = useState(false);
+  const limitsAnim = useRef(new Animated.Value(0)).current;
+
+  function openLimits() {
+    haptics.light();
+    setLimitsOpen(true);
+    Animated.spring(limitsAnim, { toValue: 1, useNativeDriver: true, friction: 9, tension: 50 }).start();
+  }
+
+  function closeLimits() {
+    Animated.timing(limitsAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+      setLimitsOpen(false);
+    });
+  }
 
   // Мини-календарь сразу «полный» — переключение месяцев прямо тут, без
   // перехода на отдельный экран.
@@ -736,6 +756,12 @@ export function ExpensesScreen() {
                         </Pressable>
                       ))}
                     </View>
+
+                    <Pressable style={styles.limitsLink} onPress={openLimits}>
+                      <ShieldCheck color={colors.accent} size={16} />
+                      <Text style={styles.limitsLinkText}>{t('expenses_limits_link')}</Text>
+                      <ChevronRight color={colors.textSecondary} size={16} />
+                    </Pressable>
                   </Animated.View>
 
                   {/* Кнопки-углы поверх обеих сторон — при перевороте остаются на месте.
@@ -747,16 +773,6 @@ export function ExpensesScreen() {
                       hitSlop={6}
                     >
                       <Wallet color={openFace === 'wallet' ? colors.background : colors.accent} size={18} />
-                    </Pressable>
-                    <Pressable
-                      style={styles.cornerButton}
-                      onPress={() => {
-                        haptics.light();
-                        rootNav()?.navigate('Limits');
-                      }}
-                      hitSlop={6}
-                    >
-                      <ShieldCheck color={colors.accent} size={18} />
                     </Pressable>
                   </View>
                   <View style={styles.cardCorner}>
@@ -845,6 +861,26 @@ export function ExpensesScreen() {
         actions={profileMenuActions()}
       />
 
+      {/* Лимиты: не отдельный экран стека, а разворот этого же блока
+          расходов на весь экран — потому и рендерится прямо тут, поверх
+          остального контента, а не через navigation.navigate. */}
+      {limitsOpen && (
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            styles.limitsOverlay,
+            {
+              opacity: limitsAnim,
+              transform: [
+                { scale: limitsAnim.interpolate({ inputRange: [0, 1], outputRange: [0.86, 1] }) },
+              ],
+            },
+          ]}
+        >
+          <LimitsScreen onBack={closeLimits} />
+        </Animated.View>
+      )}
+
       {/* Очередь чеков без сети: посмотреть, отправить, удалить */}
       <Modal visible={queueVisible} transparent animationType="slide" onRequestClose={() => setQueueVisible(false)}>
         <Pressable style={styles.backdrop} onPress={() => setQueueVisible(false)}>
@@ -891,6 +927,11 @@ const styles = themedStyles(() => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  limitsOverlay: {
+    backgroundColor: colors.background,
+    zIndex: 100,
+    elevation: 30,
   },
   listContent: {
     padding: 20,
@@ -1110,6 +1151,21 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   legend: {
     gap: 12,
+  },
+  limitsLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  limitsLinkText: {
+    flex: 1,
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '600',
   },
   legendRow: {
     flexDirection: 'row',
