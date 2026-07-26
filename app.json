@@ -9,10 +9,12 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.dilukliu0.iospochet"
+      "bundleIdentifier": "com.dilukliu0.iospochet",
+      "buildNumber": "1"
     },
     "android": {
       "package": "com.dilukliu0.iospochet",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
