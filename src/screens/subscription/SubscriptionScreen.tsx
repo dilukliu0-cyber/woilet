@@ -2,13 +2,17 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BadgeCheck, Bot, Check, Infinity as InfinityIcon, ShoppingBasket, Users } from 'lucide-react-native';
-import { useCallback } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { FadeInView } from '../../components/ui/FadeInView';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { TextField } from '../../components/ui/TextField';
 import { useT } from '../../i18n/useT';
-import { INTL_LOCALE } from '../../i18n/translations';
+import { INTL_LOCALE, type TranslationKey } from '../../i18n/translations';
+import { redeemPromoCode, type RedeemFailure } from '../../services/subscription/promoService';
+import { useToastStore } from '../../store/toastStore';
+import { haptics } from '../../utils/haptics';
 import type { AppStackParamList } from '../../navigation/types';
 import { useAuthStore } from '../../store/authStore';
 import { useLocaleStore } from '../../store/localeStore';
@@ -26,6 +30,12 @@ export function SubscriptionScreen({ navigation }: Props) {
   const expiresAt = useSubscriptionStore((state) => state.expiresAt);
   const scansUsed = useSubscriptionStore((state) => state.scansUsed);
   const fetchSubscription = useSubscriptionStore((state) => state.fetch);
+  const showToast = useToastStore((state) => state.show);
+
+  const [promoOpen, setPromoOpen] = useState(false);
+  const [promoCode, setPromoCode] = useState('');
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [redeeming, setRedeeming] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -33,6 +43,36 @@ export function SubscriptionScreen({ navigation }: Props) {
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId]),
   );
+
+  const FAILURE_KEY: Record<RedeemFailure, TranslationKey> = {
+    not_found: 'subscription_promo_not_found',
+    exhausted: 'subscription_promo_exhausted',
+    already_used: 'subscription_promo_already_used',
+    empty: 'subscription_promo_not_found',
+    network: 'subscription_promo_network',
+  };
+
+  async function handleRedeem() {
+    if (!promoCode.trim() || !userId) return;
+    setRedeeming(true);
+    setPromoError(null);
+    const result = await redeemPromoCode(promoCode.trim());
+    setRedeeming(false);
+
+    if (!result.ok) {
+      haptics.warning();
+      setPromoError(t(FAILURE_KEY[result.reason]));
+      return;
+    }
+
+    haptics.success();
+    showToast(t('subscription_promo_success'));
+    setPromoOpen(false);
+    setPromoCode('');
+    // Перечитываем состояние с сервера, а не выставляем isPro локально:
+    // источник истины — база, и экран сразу покажет реальный срок действия.
+    await fetchSubscription(userId);
+  }
 
   const left = scansLeft(isPro, scansUsed);
 
@@ -113,11 +153,39 @@ export function SubscriptionScreen({ navigation }: Props) {
         {!isPro && (
           <FadeInView index={3}>
             <View style={styles.ctaBlock}>
-              {/* Кнопка намеренно неактивна: покупки подключатся, когда
-                  приложение появится в App Store / Google Play — до этого
-                  оформить подписку технически невозможно. */}
+              {/* Покупка через магазин недоступна, пока приложение не
+                  опубликовано. До этого Pro выдаётся промокодом — его
+                  проверяет сервер, поэтому «просто нажать и получить Pro»
+                  нельзя. */}
               <PrimaryButton label={t('subscription_cta_soon')} onPress={() => {}} disabled />
               <Text style={styles.notReady}>{t('subscription_not_ready')}</Text>
+
+              {promoOpen ? (
+                <View style={styles.promoBlock}>
+                  <TextField
+                    label={t('subscription_promo_label')}
+                    value={promoCode}
+                    onChangeText={(value) => {
+                      setPromoCode(value);
+                      setPromoError(null);
+                    }}
+                    placeholder={t('subscription_promo_placeholder')}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                  />
+                  {promoError && <Text style={styles.promoError}>{promoError}</Text>}
+                  <PrimaryButton
+                    label={t('subscription_promo_activate')}
+                    onPress={handleRedeem}
+                    loading={redeeming}
+                    disabled={!promoCode.trim()}
+                  />
+                </View>
+              ) : (
+                <Pressable onPress={() => setPromoOpen(true)} hitSlop={6} style={styles.promoLinkWrap}>
+                  <Text style={styles.promoLink}>{t('subscription_promo_open')}</Text>
+                </Pressable>
+              )}
             </View>
           </FadeInView>
         )}
@@ -229,5 +297,22 @@ const styles = themedStyles(() => StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     lineHeight: 17,
+  },
+  promoLinkWrap: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  promoLink: {
+    color: colors.accent,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  promoBlock: {
+    gap: 10,
+    marginTop: 6,
+  },
+  promoError: {
+    color: colors.error,
+    fontSize: 13,
   },
 }));

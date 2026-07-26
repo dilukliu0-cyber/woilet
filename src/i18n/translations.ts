@@ -367,6 +367,15 @@ const ru = {
   subscription_quota_body:
     'В этом месяце вы использовали все {limit} бесплатных сканов. Оформите Pro для безлимита или добавьте расход вручную.',
   subscription_learn_more: 'Подробнее о Pro',
+  subscription_promo_open: 'У меня есть промокод',
+  subscription_promo_label: 'Промокод',
+  subscription_promo_placeholder: 'Введите код',
+  subscription_promo_activate: 'Активировать',
+  subscription_promo_success: 'Готово! Woilet Pro активирован',
+  subscription_promo_not_found: 'Такого промокода нет',
+  subscription_promo_exhausted: 'Промокод исчерпан',
+  subscription_promo_already_used: 'Вы уже активировали этот промокод',
+  subscription_promo_network: 'Не удалось связаться с сервером',
 } as const;
 
 export type TranslationKey = keyof typeof ru;
@@ -710,6 +719,15 @@ const en: Dictionary = {
   subscription_quota_body:
     'You have used all {limit} free scans this month. Get Pro for unlimited scanning, or add the expense manually.',
   subscription_learn_more: 'Learn more about Pro',
+  subscription_promo_open: 'I have a promo code',
+  subscription_promo_label: 'Promo code',
+  subscription_promo_placeholder: 'Enter code',
+  subscription_promo_activate: 'Activate',
+  subscription_promo_success: 'Done! Woilet Pro is active',
+  subscription_promo_not_found: 'No such promo code',
+  subscription_promo_exhausted: 'This promo code is used up',
+  subscription_promo_already_used: 'You have already used this promo code',
+  subscription_promo_network: 'Could not reach the server',
 };
 
 const cs: Dictionary = {
@@ -1050,6 +1068,15 @@ const cs: Dictionary = {
   subscription_quota_body:
     'Tento měsíc jste využili všech {limit} skenů zdarma. Pořiďte si Pro pro neomezené skenování, nebo přidejte výdaj ručně.',
   subscription_learn_more: 'Více o Pro',
+  subscription_promo_open: 'Mám promo kód',
+  subscription_promo_label: 'Promo kód',
+  subscription_promo_placeholder: 'Zadejte kód',
+  subscription_promo_activate: 'Aktivovat',
+  subscription_promo_success: 'Hotovo! Woilet Pro je aktivní',
+  subscription_promo_not_found: 'Takový promo kód neexistuje',
+  subscription_promo_exhausted: 'Promo kód je vyčerpán',
+  subscription_promo_already_used: 'Tento promo kód jste už použili',
+  subscription_promo_network: 'Nepodařilo se spojit se serverem',
 };
 
 export const dictionaries: Record<Locale, Dictionary> = { ru, en, cs };
