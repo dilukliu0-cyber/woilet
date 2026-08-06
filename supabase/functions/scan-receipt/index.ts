@@ -48,14 +48,24 @@ const LANGUAGE_NAMES: Record<string, string> = {
   en: 'английский',
 };
 
-function buildSystemPrompt(translateToLanguage: string | null): string {
+function buildSystemPrompt(translateToLanguage: string | null, knownNames: string[]): string {
   const translationRule = translateToLanguage
     ? `Переведи cleanedName на ${translateToLanguage} язык (кроме имён собственных и брендов — «Coca-Cola», ` +
       `«Lay's» и т.п. оставляй как есть, переводится только описание товара). Это применяется ПОСЛЕ ` +
       `приведения названия к читаемому виду (см. правило ниже).\n`
     : '';
 
-  return `Ты анализируешь фото кассового чека. Извлеки структурированные данные.
+  // Без этого модель на каждый скан придумывает название заново («Куриное
+  // филе», «Филе куриное охл.»), и один товар в статистике распадается на
+  // несколько. Свой прошлый словарь она переиспользует охотно.
+  const vocabularyRule = knownNames.length
+    ? `\nПользователь уже покупал эти товары:\n${knownNames.map((name) => `- ${name}`).join('\n')}\n` +
+      `Если товар в чеке — тот же самый (пусть даже написан на кассе иначе), верни cleanedName ТОЧНО как ` +
+      `в этом списке, символ в символ. Отличается объём, вес или вкус — это другой товар, придумай для ` +
+      `него новое название. Не подгоняй под список то, чего в нём нет.\n`
+    : '';
+
+  return `Ты анализируешь фото кассового чека. Извлеки структурированные данные.${vocabularyRule}
 cleanedName — нормальное человеческое название товара, а не сырой текст с кассы. Расшифровывай
 сокращения, артикулы и коды упаковки (например «ХЛ БЕЛ НАР 500Г» → «Хлеб белый нарезной», «МОЛ 3.2% 1Л» →
 «Молоко 3.2%»). Но если название на чеке и так понятно человеку (бренд + товар, например «Lay's Sour
@@ -167,7 +177,8 @@ Deno.serve(async (req) => {
     }
 
     const translateToLanguage = translateItems && typeof language === 'string' ? LANGUAGE_NAMES[language] ?? null : null;
-    const systemPrompt = buildSystemPrompt(translateToLanguage);
+    const knownNames = await fetchKnownProductNames(serviceClient, user.id);
+    const systemPrompt = buildSystemPrompt(translateToLanguage, knownNames);
 
     const geminiResponse = await fetchWithRetry(
       `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiApiKey}`,
@@ -235,6 +246,36 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'Внутренняя ошибка сервера' }, 500);
   }
 });
+
+// Словарь уже купленных товаров для подсказки модели. Берём недавние
+// покупки: привычный ассортимент меняется медленно, а раздувать промпт всей
+// историей и дорого, и вредно для точности.
+async function fetchKnownProductNames(
+  serviceClient: ReturnType<typeof createClient>,
+  userId: string,
+): Promise<string[]> {
+  const { data, error } = await serviceClient
+    .from('receipt_items')
+    .select('cleaned_name')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(400);
+
+  if (error || !data) return [];
+
+  const seen = new Set<string>();
+  const names: string[] = [];
+  for (const row of data) {
+    const name = (row.cleaned_name ?? '').trim();
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    names.push(name);
+    if (names.length >= 120) break;
+  }
+  return names;
+}
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {

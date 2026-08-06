@@ -19,6 +19,7 @@ import { colors, getCategoryColor } from '../../theme/colors';
 import { themedStyles } from '../../theme/themedStyles';
 import { CATEGORY_ICON_BY_NAME } from '../../utils/categoryIconMap';
 import { getCategoryIcon } from '../../utils/categoryIcons';
+import { preferredDisplayName, productKey } from '../../utils/productKey';
 
 type ProductRow = {
   cleaned_name: string;
@@ -90,18 +91,27 @@ export function CategoryDetailScreen({ route, navigation }: Props) {
   // Раньше обрезалось до топ-5 («Популярные товары») — пользователь
   // ожидает видеть тут ВСЁ, что куплено в категории, не только самое
   // дорогое, поэтому список больше не режется.
+  // Группируем по каноническому ключу, а не по строке названия: модель на
+  // разных сканах пишет один товар по-разному, и раньше он показывался
+  // несколькими строками.
   const popular = useMemo(() => {
-    const byName = new Map<string, { total: number; count: number; weight: number; weightUnit: string | null }>();
+    const byKey = new Map<
+      string,
+      { total: number; count: number; weight: number; weightUnit: string | null; variants: string[] }
+    >();
     for (const row of rows) {
-      const entry = byName.get(row.cleaned_name) ?? { total: 0, count: 0, weight: 0, weightUnit: null };
+      const key = productKey(row.cleaned_name);
+      if (!key) continue;
+      const entry = byKey.get(key) ?? { total: 0, count: 0, weight: 0, weightUnit: null, variants: [] };
       entry.total += row.price * (row.receipt?.exchange_rate ?? 1);
       entry.count += 1;
       entry.weight += (row.weight_value ?? 0) * (row.quantity || 1);
       if (row.weight_unit) entry.weightUnit = row.weight_unit;
-      byName.set(row.cleaned_name, entry);
+      entry.variants.push(row.cleaned_name);
+      byKey.set(key, entry);
     }
-    return [...byName.entries()]
-      .map(([name, v]) => ({ name, ...v }))
+    return [...byKey.values()]
+      .map((entry) => ({ ...entry, name: preferredDisplayName(entry.variants) }))
       .sort((a, b) => b.total - a.total);
   }, [rows]);
 

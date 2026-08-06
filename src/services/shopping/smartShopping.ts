@@ -1,4 +1,5 @@
 import { supabase } from '../api/supabaseClient';
+import { productKey } from '../../utils/productKey';
 
 // Умные покупки: прогнозы строятся ТОЛЬКО на реальной истории чеков.
 // Если данных мало (меньше 3 покупок товара) — прогноза нет, ничего не выдумываем.
@@ -43,7 +44,11 @@ export async function fetchSmartShopping(userId: string): Promise<{
   for (const row of rows) {
     const day = dayKey(row);
     if (!day) continue;
-    const key = row.cleaned_name.trim().toLowerCase();
+    // Общий ключ сопоставления: при сравнении только по lower() разные
+    // написания одного товара давали разную частоту покупок, и прогноз
+    // «скоро закончится» получался неверным.
+    const key = productKey(row.cleaned_name);
+    if (!key) continue;
     if (!datesByProduct.has(key)) {
       datesByProduct.set(key, new Set());
       displayName.set(key, row.cleaned_name.trim());

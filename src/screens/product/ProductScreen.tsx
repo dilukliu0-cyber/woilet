@@ -15,8 +15,10 @@ import { useAuthStore } from '../../store/authStore';
 import { useLocaleStore } from '../../store/localeStore';
 import { colors, getCategoryColor } from '../../theme/colors';
 import { themedStyles } from '../../theme/themedStyles';
+import { productKey } from '../../utils/productKey';
 
 type PurchaseRow = {
+  cleaned_name: string;
   price: number;
   quantity: number;
   weight_value: number | null;
@@ -49,14 +51,24 @@ export function ProductScreen({ route, navigation }: Props) {
     useCallback(() => {
       async function load() {
         if (!userId) return;
+        // Точное совпадение по названию теряло покупки, записанные чуть
+        // иначе («Филе куриное» против «Куриное филе»), а вместе с ними —
+        // половину истории цен. Поэтому выбираем покупки пользователя и
+        // сопоставляем по каноническому ключу.
+        const wanted = productKey(productName);
         const { data } = await supabase
           .from('receipt_items')
           .select(
-            'price, quantity, weight_value, weight_unit, category_name, receipt:receipts(store_name, purchase_date, created_at, exchange_rate, base_currency, currency)',
+            'cleaned_name, price, quantity, weight_value, weight_unit, category_name, receipt:receipts(store_name, purchase_date, created_at, exchange_rate, base_currency, currency)',
           )
           .eq('user_id', userId)
-          .eq('cleaned_name', productName);
-        setPurchases(((data as unknown as PurchaseRow[]) ?? []).filter((p) => p.receipt));
+          .order('created_at', { ascending: false })
+          .limit(2000);
+
+        const rows = ((data as unknown as PurchaseRow[]) ?? []).filter(
+          (row) => row.receipt && productKey(row.cleaned_name) === wanted,
+        );
+        setPurchases(rows);
         setLoading(false);
       }
       load();

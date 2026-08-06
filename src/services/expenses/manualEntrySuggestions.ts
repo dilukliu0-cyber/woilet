@@ -1,4 +1,5 @@
 import { supabase } from '../api/supabaseClient';
+import { productKey } from '../../utils/productKey';
 
 // Подсказки для ручного ввода расхода. Смысл: люди покупают одно и то же
 // в одних и тех же магазинах, поэтому большую часть формы можно заполнить
@@ -27,12 +28,15 @@ export async function fetchFrequentItems(userId: string): Promise<FrequentItem[]
 
   if (!data) return [];
 
-  const byName = new Map<string, FrequentItem>();
+  // Ключ общий для всего приложения: иначе «Молоко» и «молоко» попадали бы
+  // в подсказки двумя отдельными кнопками.
+  const byKey = new Map<string, FrequentItem>();
   for (const row of data) {
-    const key = row.cleaned_name.trim();
+    const name = row.cleaned_name.trim();
+    const key = productKey(name);
     if (!key) continue;
 
-    const existing = byName.get(key.toLowerCase());
+    const existing = byKey.get(key);
     if (existing) {
       existing.count += 1;
       continue;
@@ -40,15 +44,15 @@ export async function fetchFrequentItems(userId: string): Promise<FrequentItem[]
     // Данные отсортированы от новых к старым, поэтому первая встреченная
     // строка — самая свежая: её цена и категория и берутся как актуальные.
     const qty = row.quantity || 1;
-    byName.set(key.toLowerCase(), {
-      name: key,
+    byKey.set(key, {
+      name,
       categoryName: row.category_name,
       lastPrice: qty > 1 ? row.price / qty : row.price,
       count: 1,
     });
   }
 
-  return [...byName.values()].sort((a, b) => b.count - a.count).slice(0, FREQUENT_ITEMS_SHOWN);
+  return [...byKey.values()].sort((a, b) => b.count - a.count).slice(0, FREQUENT_ITEMS_SHOWN);
 }
 
 export async function fetchRecentStores(userId: string): Promise<string[]> {
