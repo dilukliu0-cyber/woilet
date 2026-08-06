@@ -6,6 +6,7 @@ import { useToastStore } from '../../store/toastStore';
 import type { RecognizedReceipt } from '../../types/receipt';
 import type { ReceiptRecord } from '../../types/receiptRecord';
 import { autoCheckShoppingList } from './receiptsService';
+import { runProductDedupe } from './productDedupe';
 
 // §13 (пожелание): фото не блокирует пользователя. Чек создаётся сразу со
 // статусом processing, Gemini работает в фоне, строка в «Расходах» обновится
@@ -191,6 +192,19 @@ async function processInBackground(
     const { error: itemsError } = await supabase.from('receipt_items').insert(itemsPayload);
     if (itemsError) throw new Error(itemsError.message);
   }
+
+  // Разбор дублей запускается сам после скана: сервер решает, не рано ли, и
+  // ничего не делает чаще раза в сутки. Результат показываем — объединение
+  // переписывает названия в истории, и пользователь должен это заметить, а
+  // не обнаружить случайно. Ошибку проглатываем: фоновая уборка не должна
+  // ломать сохранение чека.
+  runProductDedupe()
+    .then((result) => {
+      if (result && result.merged > 0) {
+        useToastStore.getState().show(`Одинаковые товары объединены: ${result.merged}`);
+      }
+    })
+    .catch(() => {});
 
   const checked = await autoCheckShoppingList(userId, recognized.items);
   const show = useToastStore.getState().show;

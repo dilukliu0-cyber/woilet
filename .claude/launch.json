@@ -8,6 +8,18 @@
         "C:/Users/diluk/AppData/Local/Temp/claude/C--Users-diluk-Desktop-aiphone/4be20773-e54b-433a-8219-798f1ca36d9b/scratchpad/serve.js"
       ],
       "port": 4173
+    },
+    {
+      "name": "expo-go",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["expo", "start"],
+      "port": 8081
+    },
+    {
+      "name": "expo-web-alt",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["expo", "start", "--web", "--port", "8082"],
+      "port": 8082
     }
   ]
 }

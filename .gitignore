@@ -44,3 +44,7 @@ supabase/.temp/
 
 # Claude Code local settings
 .claude/
+
+# Скриншоты, которые роняют в корень проекта при отладке
+*.png
+!assets/*.png

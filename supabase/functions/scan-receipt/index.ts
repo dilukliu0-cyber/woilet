@@ -60,9 +60,11 @@ function buildSystemPrompt(translateToLanguage: string | null, knownNames: strin
   // несколько. Свой прошлый словарь она переиспользует охотно.
   const vocabularyRule = knownNames.length
     ? `\nПользователь уже покупал эти товары:\n${knownNames.map((name) => `- ${name}`).join('\n')}\n` +
-      `Если товар в чеке — тот же самый (пусть даже написан на кассе иначе), верни cleanedName ТОЧНО как ` +
-      `в этом списке, символ в символ. Отличается объём, вес или вкус — это другой товар, придумай для ` +
-      `него новое название. Не подгоняй под список то, чего в нём нет.\n`
+      `Для каждого товара из чека реши, есть ли он в этом списке. Совпадением считается тот же самый ` +
+      `товар, даже если на кассе он записан на другом языке или в транслитерации («Pomelo» и «Помело» — ` +
+      `одно и то же). Если совпадение есть — верни его строку в matchedKnownName ТОЧНО, символ в символ. ` +
+      `Если отличается вкус, объём, вес или жирность — это ДРУГОЙ товар, matchedKnownName = null. ` +
+      `Сомневаешься — null. Не выдумывай названия, которых нет в списке.\n`
     : '';
 
   return `Ты анализируешь фото кассового чека. Извлеки структурированные данные.${vocabularyRule}
@@ -89,6 +91,7 @@ confidence меньше 0.7 — needsReview = true.
     {
       "rawName": string,
       "cleanedName": string,
+      "matchedKnownName": string | null,
       "brand": string | null,
       "category": string,
       "price": number,
@@ -220,6 +223,18 @@ Deno.serve(async (req) => {
       parsed = JSON.parse(rawText);
     } catch {
       return jsonResponse({ error: 'ИИ вернул некорректный JSON' }, 502);
+    }
+
+    // Модель могла придумать «известное» название, которого в словаре нет —
+    // тогда вместо слияния дублей получился бы новый дубль. Поэтому
+    // подставляем только то, что реально было в списке.
+    const knownSet = new Set(knownNames);
+    if (Array.isArray(parsed?.items)) {
+      for (const item of parsed.items) {
+        const matched = typeof item?.matchedKnownName === 'string' ? item.matchedKnownName.trim() : '';
+        if (matched && knownSet.has(matched)) item.cleanedName = matched;
+        delete item.matchedKnownName;
+      }
     }
 
     const usage = geminiData.usageMetadata ?? {};
