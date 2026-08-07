@@ -12,6 +12,7 @@ export type UserSettings = {
   chart_style: 'donut' | 'bars';
   home_chart: 'line' | 'daily';
   translate_items: boolean;
+  shopping_reminders_enabled: boolean;
   push_token: string | null;
   created_at: string;
   updated_at: string;

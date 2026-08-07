@@ -323,6 +323,15 @@ export function ProfileScreen() {
             />
           </View>
           <View style={styles.toggleRow}>
+            <Text style={styles.toggleLabel}>{t('profile_shopping_reminders')}</Text>
+            <Switch
+              value={settings?.shopping_reminders_enabled ?? true}
+              onValueChange={(value) => updateSettings({ shopping_reminders_enabled: value })}
+              trackColor={{ false: colors.surfaceElevated, true: colors.accent }}
+              thumbColor={colors.textPrimary}
+            />
+          </View>
+          <View style={styles.toggleRow}>
             <Text style={styles.toggleLabel}>{t('profile_ai_tips')}</Text>
             <Switch
               value={settings?.ai_tips_enabled ?? true}

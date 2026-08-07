@@ -21,6 +21,7 @@ type SettingsState = {
         | 'chart_style'
         | 'home_chart'
         | 'translate_items'
+        | 'shopping_reminders_enabled'
       >
     >,
   ) => Promise<void>;
