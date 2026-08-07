@@ -173,12 +173,20 @@ export function ExpensesScreen() {
 
   function loadCategories() {
     if (!userId) return;
+    // Диаграмма считается за месяц, выбранный стрелками календаря, а не за
+    // текущий: раньше здесь стояла сегодняшняя дата, и пролистать календарь
+    // на прошлый месяц было можно, а диаграмма оставалась на этом — в начале
+    // нового месяца экран выглядел так, будто данные пропали.
     // Диаграмма должна совпадать со списком чеков ниже: без фильтра — вместе
     // с семьёй, с «только я» — как и список, только свои.
-    fetchMonthlyCategoryBreakdown(userId, new Date(), !showOnlyMine).then(({ entries, currency }) => {
-      setCategories(entries);
-      setCategoryCurrency(currency);
-    });
+    fetchMonthlyCategoryBreakdown(userId, new Date(calYear, calMonth, 1), !showOnlyMine).then(
+      ({ entries, currency }) => {
+        setCategories(entries);
+        // В пустом месяце валюту взять неоткуда — падаем на основную из
+        // настроек, иначе сумма выводится как «0 » без обозначения.
+        setCategoryCurrency(currency || settings?.currency || '');
+      },
+    );
   }
 
   useFocusEffect(
@@ -197,10 +205,12 @@ export function ExpensesScreen() {
     }, [userId, fetchReceipts, fetchLimits, walletMode]),
   );
 
+  // Пересчитываем и при смене месяца стрелками, иначе диаграмма отстанет от
+  // календаря.
   useEffect(() => {
     loadCategories();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showOnlyMine]);
+  }, [showOnlyMine, calYear, calMonth]);
 
   function rootNav() {
     return navigation.getParent<NativeStackNavigationProp<AppStackParamList>>();
@@ -464,6 +474,12 @@ export function ExpensesScreen() {
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ];
   const isCurrentMonth = calYear === today.getFullYear() && calMonth === today.getMonth();
+  // Когда смотрим не текущий месяц, подпись под суммой должна называть его:
+  // иначе непонятно, за какой период цифра.
+  const periodLabel = isCurrentMonth
+    ? t('expenses_total_month')
+    : `${MONTH_NAMES[calMonth]} ${calYear}`;
+  const prevMonthLabel = MONTH_NAMES[(calMonth + 11) % 12];
 
   // Календарь открывается поворотом вправо (0→1), кошелёк — влево (0→−1).
   const frontAnimated = {
@@ -566,7 +582,12 @@ export function ExpensesScreen() {
               </Pressable>
             )}
 
-            {segments.length > 0 && (
+            {/* Графический блок (диаграмма, кошелёк, календарь) показывается
+                всегда. Раньше он был обёрнут в segments.length > 0 и в месяце
+                без трат пропадал целиком — вместе с календарём и кошельком,
+                через которые как раз и переключаются месяцы. В начале нового
+                месяца экран выглядел сломанным. */}
+            {(
               <FadeInView index={0}>
                 <View style={[styles.flipWrap, cardHeight ? { height: cardHeight } : null]}>
                   {/* Задняя сторона: мини-календарь (кнопка справа) */}
@@ -707,7 +728,7 @@ export function ExpensesScreen() {
                           strokeWidth={26}
                           centerValue={monthTotal}
                           centerFormatter={(n) => `${n.toFixed(0)} ${categoryCurrency}`}
-                          centerBottom={t('expenses_total')}
+                          centerBottom={isCurrentMonth ? t('expenses_total') : periodLabel}
                         />
                       </View>
                     ) : (
@@ -717,7 +738,7 @@ export function ExpensesScreen() {
                           formatter={(n) => `${n.toFixed(0)} ${categoryCurrency}`}
                           style={styles.barsTotal}
                         />
-                        <Text style={styles.barsTotalSub}>{t('expenses_total_month')}</Text>
+                        <Text style={styles.barsTotalSub}>{periodLabel}</Text>
                       </View>
                     )}
 
@@ -756,6 +777,19 @@ export function ExpensesScreen() {
                         </Pressable>
                       ))}
                     </View>
+
+                    {/* Месяц без трат: объясняем пустоту и даём уйти в
+                        предыдущий месяц, не открывая календарь на обороте. */}
+                    {categories.length === 0 && (
+                      <View style={styles.emptyMonth}>
+                        <Text style={styles.emptyMonthText}>{t('expenses_empty_month')}</Text>
+                        <Pressable onPress={() => shiftCalMonth(-1)} hitSlop={8}>
+                          <Text style={styles.emptyMonthAction}>
+                            {t('expenses_show_month', { month: prevMonthLabel })}
+                          </Text>
+                        </Pressable>
+                      </View>
+                    )}
 
                     <Pressable style={styles.limitsLink} onPress={openLimits}>
                       <ShieldCheck color={colors.accent} size={16} />
@@ -1151,6 +1185,20 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   legend: {
     gap: 12,
+  },
+  emptyMonth: {
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 14,
+  },
+  emptyMonthText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+  },
+  emptyMonthAction: {
+    color: colors.accent,
+    fontSize: 13,
+    fontWeight: '600',
   },
   limitsLink: {
     flexDirection: 'row',

@@ -117,6 +117,8 @@ const ru = {
   // Расходы
   expenses_title: 'Расходы',
   expenses_total_month: 'Всего за месяц',
+  expenses_empty_month: 'В этом месяце трат пока нет',
+  expenses_show_month: 'Показать {month}',
   expenses_total: 'Всего',
   expenses_wallet: 'Кошелёк',
   expenses_wallet_balance: 'Баланс кошелька',
@@ -512,6 +514,8 @@ const en: Dictionary = {
 
   expenses_title: 'Expenses',
   expenses_total_month: 'Total this month',
+  expenses_empty_month: 'No spending this month yet',
+  expenses_show_month: 'Show {month}',
   expenses_total: 'Total',
   expenses_wallet: 'Wallet',
   expenses_wallet_balance: 'Wallet balance',
@@ -891,6 +895,8 @@ const cs: Dictionary = {
 
   expenses_title: 'Výdaje',
   expenses_total_month: 'Celkem za měsíc',
+  expenses_empty_month: 'V tomto měsíci zatím nejsou výdaje',
+  expenses_show_month: 'Zobrazit {month}',
   expenses_total: 'Celkem',
   expenses_wallet: 'Peněženka',
   expenses_wallet_balance: 'Zůstatek peněženky',

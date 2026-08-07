@@ -61,6 +61,16 @@ export function DonutChart({
     <Pressable onPress={handleSpin}>
       <Animated.View style={{ width: size, height: size, transform: [{ rotate }] }}>
         <Svg width={size} height={size}>
+          {/* Дорожка кольца рисуется всегда: без неё месяц без трат выглядел
+              как пустое место, будто экран не загрузился. */}
+          <Circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke={colors.surfaceElevated}
+            strokeWidth={strokeWidth}
+            fill="none"
+          />
           {segments.map((segment) => {
             const fraction = segment.value / total;
             const startAngle = -90 + cumulative * 360;
