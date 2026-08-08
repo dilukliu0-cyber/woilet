@@ -1,106 +1,134 @@
-# Woilet
-
-**Сфотографировал чек — увидел, куда уходят деньги.**
-
-Приложение для учёта личных расходов, где не нужно ничего вбивать руками. Камера снимает чек, модель разбирает его на товары с ценами и категориями, а дальше приложение показывает, на чём вы переплачиваете и что скоро закончится.
-
-Работает на iOS и Android. Русский, чешский, английский.
+<div align="center">
+  <img src="assets/icon.png" width="88" alt="Woilet" />
+  <h1>Woilet</h1>
+  <p><strong>Point your camera at a receipt. See where your money actually goes.</strong></p>
+  <p>
+    <img src="https://img.shields.io/badge/React_Native-0.81-61DAFB?logo=react&logoColor=white" alt="React Native" />
+    <img src="https://img.shields.io/badge/Expo-SDK_54-000020?logo=expo&logoColor=white" alt="Expo" />
+    <img src="https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white" alt="TypeScript" />
+    <img src="https://img.shields.io/badge/Supabase-Postgres_+_RLS-3ECF8E?logo=supabase&logoColor=white" alt="Supabase" />
+    <img src="https://img.shields.io/badge/Gemini-2.5_Flash-4285F4?logo=google&logoColor=white" alt="Gemini" />
+  </p>
+  <p><a href="README.ru.md">Русская версия</a> · <a href="https://github.com/dilukliu0-cyber/woilet/releases/latest">Download APK</a></p>
+</div>
 
 ---
 
-## Зачем это
+## The problem
 
-Трекеры расходов бросают через две недели — надоедает вводить каждую покупку. Woilet убирает ввод: чек в кадре превращается в разложенную по полочкам корзину за пару секунд.
+People abandon expense trackers within two weeks, and it is almost always the same reason: typing in every purchase is tedious. The apps that survive are the ones that remove data entry, not the ones that add charts.
 
-Отсюда и всё остальное в приложении:
+Woilet removes the typing. A photo of a receipt becomes an itemised, categorised basket in a couple of seconds — store, date, every line item, price and category.
 
-- **Не «еда 1500 ₽», а конкретика.** Видно, что именно куплено, по какой цене и где это было дешевле в прошлый раз.
-- **Один товар — одна запись.** Модель узнаёт «Birell 0.0 Pomelo» и «Birell 0.0 Помело» как одну покупку, а не две.
-- **Семейный бюджет.** Расходы близких в одной картине, без пересылки скриншотов.
-- **Напоминания о забытом.** Если пункт висит в списке покупок дольше трёх часов, придёт push.
+Everything else in the app follows from having that level of detail:
 
-## Что внутри
+- **Item-level history, not "Groceries — €40."** You can see exactly what you bought, what it cost, and where the same item was cheaper last time.
+- **One product, one record.** The app recognises `Birell 0.0 Pomelo` and `Birell 0.0 Помело` as the same purchase instead of two.
+- **Household budgets.** A shared view across family members, without forwarding screenshots.
+- **Reminders that arrive when the app is closed.** If an item sits unchecked in your shopping list for more than three hours, you get a push.
 
-| | |
-|---|---|
-| **Сканирование чеков** | Фото → магазин, дата, товары, цены, категории. Работает офлайн: снимки копятся в очереди и уходят, когда появится сеть |
-| **Аналитика** | Кольцевая диаграмма и столбцы по категориям, календарь трат по дням, история цен на конкретный товар по магазинам |
-| **Лимиты** | Бюджет на категорию с предупреждением на подходе к порогу |
-| **ИИ-чат** | Вопросы о своих тратах обычным языком; он же составляет списки покупок по запросу вроде «сделай список для лазаньи» |
-| **Умные покупки** | Прогноз «скоро закончится» по реальной частоте покупок, шаблоны, автоотметка купленного из распознанного чека |
-| **Семья** | Общий бюджет по приглашению, видно кто сколько потратил |
-| **Кошелёк** | Доходы и баланс на обороте карточки с диаграммой |
+## What it does
 
-## Как устроено
+| Feature | Detail |
+| --- | --- |
+| **Receipt scanning** | Photo → store, date, line items, prices, categories. Fully offline-tolerant: captures queue on device and upload when connectivity returns |
+| **Spending analytics** | Donut and bar breakdowns by category, per-day calendar, and price history for an individual product across stores |
+| **Budgets** | Per-category limits with a warning as you approach the threshold |
+| **AI chat** | Ask about your own spending in plain language. The same chat builds shopping lists from requests like "make me a list for lasagna" |
+| **Smart shopping** | "Running low" predictions derived from your actual purchase intervals, reusable templates, and automatic ticking of items found in a scanned receipt |
+| **Family sharing** | Invite-based shared budget with per-member spending breakdown |
+| **Wallet** | Income tracking and running balance, on the flip side of the chart card |
+
+Three interface languages (English, Russian, Czech), dark and light themes.
+
+## Architecture
 
 ```
-React Native (Expo)  ──►  Supabase          ──►  Gemini 2.5 Flash
-   экраны, офлайн-        Postgres + RLS,        распознавание чеков,
-   очередь, темы          Storage, Auth,         разбор трат, списки
-                          Edge Functions
+React Native (Expo)   ──►   Supabase              ──►   Gemini 2.5 Flash
+  screens, offline           Postgres + RLS,             receipt parsing,
+  queue, theming             Storage, Auth,              spend analysis,
+                             Edge Functions              list generation
 ```
 
-**Ключи ИИ живут только на сервере.** Приложение никогда их не видит: снимок уходит в edge-функцию, она обращается к модели. Это же место решает, что пользователю доступно.
+Four decisions worth calling out, because they are the ones that would break the product if done naively.
 
-**Доступ решает сервер, а не интерфейс.** Тариф и квоты проверяются в edge-функциях до обращения к модели — спрятать кнопку в UI недостаточно, это обходится за минуту. Состояние подписки лежит в таблице, где у клиента есть только чтение: писать может лишь service role.
+**AI keys never reach the client.** The app uploads an image to an edge function; the function talks to the model. A key shipped in a mobile bundle is a key that has been leaked — it can be extracted from the APK in minutes.
 
-**Изоляция данных на уровне БД.** Row Level Security: каждый видит свои записи и записи своей семьи. Не фильтр в коде, а правило в Postgres.
+**Entitlements are enforced server-side, before the model is called.** Every function that costs money checks the user's plan and quota first. Hiding a button in the UI is not access control; the underlying endpoint is still reachable. Subscription state lives in a table where the client has read access only — inserts and updates are restricted to the service role, so a user cannot grant themselves a paid plan with a single request.
 
-**Напоминания без участия приложения.** `pg_cron` раз в час дёргает edge-функцию через `pg_net` — иначе push не пришёл бы, пока приложение закрыто, а в этом весь смысл напоминания.
+**Data isolation is a database rule, not a code path.** Row Level Security scopes every query to the owner and their family group. Filtering in application code fails open the moment someone forgets a `where` clause; RLS fails closed.
 
-### Цифры
+**Reminders run without the app.** A `pg_cron` job calls an edge function hourly via `pg_net`. A client-triggered notification cannot work here by definition — the entire point is to reach the user while the app is shut.
+
+### Deduplication
+
+Vision models name the same product differently on every scan. String normalisation cannot fix that: `Pomelo` and `Помело` share no characters. So the app solves it in two layers.
+
+At scan time, the model receives the user's recent product vocabulary and reports which known product each line matches. That answer is validated against the vocabulary before use — an invented "match" would create a new duplicate rather than merge one.
+
+For history already accumulated, a scheduled function asks the model to group existing names. The prompt forbids merging across flavour, volume, weight or fat content, and every merge is journalled so it can be reversed — a wrong merge corrupts spending history far worse than a duplicate does.
+
+### By the numbers
 
 | | |
-|---|---|
-| Экранов | 16 |
-| Edge-функций | 10 |
-| Миграций БД | 25 |
-| Строк TypeScript | ~16 800 |
-| Языков интерфейса | 3 |
+| --- | --- |
+| Screens | 16 |
+| Edge functions | 10 |
+| Database migrations | 25 |
+| TypeScript | ~16,800 lines |
+| Interface languages | 3 |
 
-## Стек
+## Tech stack
 
-**Клиент:** React Native 0.81, Expo SDK 54, TypeScript (strict), Zustand, React Navigation, Reanimated, react-native-svg
+**Client** — React Native 0.81, Expo SDK 54, TypeScript (strict), Zustand, React Navigation, Reanimated, react-native-svg, react-native-gesture-handler
 
-**Сервер:** Supabase — Postgres с RLS, Storage, Auth, Edge Functions на Deno
+**Backend** — Supabase: Postgres with Row Level Security, Storage, Auth, Deno edge functions, `pg_cron` + `pg_net` for scheduling
 
-**ИИ:** Google Gemini 2.5 Flash — распознавание чеков, анализ трат, дедупликация товаров
+**AI** — Google Gemini 2.5 Flash for receipt parsing, spend analysis and product deduplication
 
-**Инфраструктура:** EAS Build, GitHub Actions (сборка iOS), Sentry
+**Infrastructure** — EAS Build, GitHub Actions for iOS builds, Sentry
 
-## Запуск
+## Getting started
 
 ```bash
 npm install
-cp .env.example .env   # заполните переменные Supabase
+cp .env.example .env    # fill in your Supabase project values
 npx expo start
 ```
 
-Нужны:
+You will need:
 
-- проект Supabase — примените миграции из `supabase/migrations` через `supabase db push`
-- ключ Google Gemini — задайте секретом: `supabase secrets set GEMINI_API_KEY=...`
+- **A Supabase project.** Apply the schema with `supabase db push` — 25 migrations covering tables, RLS policies, functions and scheduled jobs.
+- **A Google Gemini API key**, stored as a server secret, never in the app: `supabase secrets set GEMINI_API_KEY=...`
 
-Переменные окружения приложения:
+Client environment variables:
 
 ```
 EXPO_PUBLIC_SUPABASE_URL=
 EXPO_PUBLIC_SUPABASE_ANON_KEY=
-EXPO_PUBLIC_SENTRY_DSN=      # необязательно
+EXPO_PUBLIC_SENTRY_DSN=      # optional
 ```
 
-## Сборка
+## Building
 
-**Android:** `eas build --platform android --profile preview` — на выходе APK, ставится на телефон напрямую.
+**Android** — `eas build --platform android --profile preview` produces an APK that installs directly on a device. A prebuilt one is attached to the [latest release](https://github.com/dilukliu0-cyber/woilet/releases/latest).
 
-**iOS:** собирается в GitHub Actions (`.github/workflows/build-ios.yml`). Сборка неподписанная — для установки на устройство нужен Apple Developer Program.
+**iOS** — built in GitHub Actions ([`build-ios.yml`](.github/workflows/build-ios.yml)). The output is unsigned, which is enough to verify the project compiles for iOS but not to install on a device; that requires an Apple Developer Program membership.
 
-## Приватность
+## Privacy
 
-Фотографии чеков лежат в закрытом хранилище и доступны только по временным ссылкам. Аккаунт удаляется из приложения вместе со всеми данными и файлами.
+Receipt photos live in a private bucket and are served only through short-lived signed URLs. Account deletion removes every row and every stored file, including profile images.
 
-Подробно: [политика конфиденциальности](docs/privacy-policy.ru.md) и [условия использования](docs/terms-of-service.ru.md).
+Full text: [Privacy Policy](docs/privacy-policy.ru.md) · [Terms of Use](docs/terms-of-service.ru.md) *(currently Russian only)*
 
-## Лицензия
+## Current limitations
+
+Stated plainly, because they are real:
+
+- **In-app purchases are not wired up.** Store products require developer accounts that are not yet set up. Pro access is granted by promo code in the meantime; the entitlement system behind it is complete and enforced server-side.
+- **Push notifications require a compiled build.** Expo Go does not issue push tokens, so reminders only arrive from an installed APK or a development build.
+- **No automated test suite.** Reasonable for a solo project at this stage, though the quota and entitlement logic is the part that would most benefit from one.
+
+## License
 
 [MIT](LICENSE)
