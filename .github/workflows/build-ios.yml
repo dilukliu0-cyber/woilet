@@ -89,13 +89,24 @@ jobs:
       - name: Build (unsigned)
         # xcodebuild archive без подписи часто не кладёт .app в
         # Products/Applications (архивация — операция для подписанных
-        # сборок), поэтому просто билдим и забираем .app из derived data.
+        # сборок). Поэтому просто билдим в явную derivedDataPath и берём
+        # .app из стандартного Build/Products оттуда — без архива вообще.
         #
-        # CONFIGURATION_BUILD_DIR здесь задавать НЕЛЬЗЯ: module map'ы
-        # CocoaPods вычисляются относительно derived data, а подмена папки
-        # результата уводит их в сторону — сборка падает на
-        # «ExpoModulesCore.modulemap not found». Путь к .app вычисляем ниже.
+        # ВАЖНО: не переопределять CONFIGURATION_BUILD_DIR вручную — это
+        # ломает пути к module map Pod-таргетов (например ExpoModulesCore),
+        # т.к. CocoaPods сам считает этот путь через xcconfig относительно
+        # derivedDataPath, и ручное переопределение с ним расходится
+        # ("module map file ... not found", "cannot load underlying module").
         working-directory: ios
+        env:
+          # Без реального Sentry-аккаунта (org/project/auth token) фазы
+          # сборки "Upload Debug Symbols"/"Bundle React Native code" от
+          # @sentry/react-native падают с "error: sentry-cli - An
+          # organization ID or slug is required...". Эта переменная —
+          # штатный флаг самого плагина, чтобы пропустить обе фазы
+          # аплоада, не трогая сам RN-бандлинг. Убрать её, когда появится
+          # настоящий EXPO_PUBLIC_SENTRY_DSN + Sentry org/project/token.
+          SENTRY_DISABLE_AUTO_UPLOAD: 'true'
         run: |
           set -euo pipefail
           xcodebuild \
@@ -113,10 +124,11 @@ jobs:
       - name: Package IPA
         run: |
           set -euo pipefail
-          APP_PATH=$(find build/DerivedData/Build/Products -maxdepth 2 -name "*.app" | head -n1)
+          PRODUCTS_DIR="build/DerivedData/Build/Products/Release-iphoneos"
+          APP_PATH=$(find "$PRODUCTS_DIR" -maxdepth 1 -name "*.app" | head -n1)
           if [ -z "$APP_PATH" ]; then
-            echo ".app не найден в build/DerivedData/Build/Products" >&2
-            find build -maxdepth 4 -name "*.app" >&2 || true
+            echo ".app не найден в $PRODUCTS_DIR" >&2
+            find build -maxdepth 4 >&2
             exit 1
           fi
           echo "App: $APP_PATH"
