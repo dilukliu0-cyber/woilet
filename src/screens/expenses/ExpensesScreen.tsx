@@ -73,7 +73,8 @@ import { haptics } from '../../utils/haptics';
 
 type FeedEntry =
   | { kind: 'receipt'; id: string; sortDate: string; receipt: ReceiptRecord }
-  | { kind: 'income'; id: string; sortDate: string; income: IncomeRecord };
+  | { kind: 'income'; id: string; sortDate: string; income: IncomeRecord }
+  | { kind: 'month'; id: string; sortDate: string; monthKey: string; label: string; total: number; count: number };
 
 // 1 января 2024 — понедельник: удобная опорная неделя, чтобы получить
 // названия дней через Intl вместо жёсткого списка на одном языке.
@@ -163,6 +164,21 @@ export function ExpensesScreen() {
   const [calMonth, setCalMonth] = useState(today.getMonth());
   // Тап по дню с расходами — фильтрует список чеков ниже этим днём.
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  // Раскрытые месяцы в списке чеков. Текущий раскрыт сразу — он и нужен
+  // чаще всего; прошлые открываются тапом по заголовку.
+  const [expandedMonths, setExpandedMonths] = useState<Set<string>>(
+    () => new Set([`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`]),
+  );
+
+  function toggleMonth(key: string) {
+    haptics.selection();
+    setExpandedMonths((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   function shiftCalMonth(delta: number) {
     const d = new Date(calYear, calMonth + delta, 1);
@@ -365,13 +381,52 @@ export function ExpensesScreen() {
         ...incomes.map((i): FeedEntry => ({ kind: 'income', id: i.id, sortDate: i.created_at, income: i })),
       ].sort((a, b) => new Date(b.sortDate).getTime() - new Date(a.sortDate).getTime())
     : receiptEntries;
-  const feedItems: FeedEntry[] =
+  const feedFiltered: FeedEntry[] =
     selectedDay !== null
       ? feedItemsAll.filter((item) => {
           const d = new Date(item.sortDate);
           return d.getFullYear() === calYear && d.getMonth() === calMonth && d.getDate() === selectedDay;
         })
       : feedItemsAll;
+
+  // Чеки разбиты по месяцам: без этого в начале нового месяца сверху висели
+  // покупки из прошлого и казалось, что месяц не сменился. Текущий месяц
+  // раскрыт, прошлые свёрнуты до заголовка с суммой — тап раскрывает.
+  // При выборе конкретного дня в календаре группировка не нужна.
+  const feedItems: FeedEntry[] = (() => {
+    if (selectedDay !== null) return feedFiltered;
+
+    const groups = new Map<string, FeedEntry[]>();
+    for (const entry of feedFiltered) {
+      const d = new Date(entry.sortDate);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const list = groups.get(key);
+      if (list) list.push(entry);
+      else groups.set(key, [entry]);
+    }
+
+    const out: FeedEntry[] = [];
+    for (const [key, entries] of groups) {
+      const [year, month] = key.split('-').map(Number);
+      const total = entries.reduce((sum, e) => {
+        if (e.kind === 'receipt') return sum + (e.receipt.total_amount ?? 0) * (e.receipt.exchange_rate ?? 1);
+        if (e.kind === 'income') return sum + e.income.amount;
+        return sum;
+      }, 0);
+
+      out.push({
+        kind: 'month',
+        id: key,
+        sortDate: entries[0].sortDate,
+        monthKey: key,
+        label: `${MONTH_NAMES[month - 1]} ${year}`,
+        total,
+        count: entries.length,
+      });
+      if (expandedMonths.has(key)) out.push(...entries);
+    }
+    return out;
+  })();
 
   if (!isLoading && receipts.length === 0 && pendingScans.length === 0) {
     // Пустое состояние — но «+» обязана остаться: это главный экран,
@@ -518,6 +573,22 @@ export function ExpensesScreen() {
         data={feedItems}
         keyExtractor={(item) => `${item.kind}-${item.id}`}
         renderItem={({ item, index }) => {
+          if (item.kind === 'month') {
+            const open = expandedMonths.has(item.monthKey);
+            return (
+              <Pressable style={styles.monthHeader} onPress={() => toggleMonth(item.monthKey)}>
+                <ChevronRight
+                  color={colors.textSecondary}
+                  size={16}
+                  style={open ? styles.monthChevronOpen : undefined}
+                />
+                <Text style={styles.monthHeaderLabel}>{item.label}</Text>
+                <Text style={styles.monthHeaderMeta}>
+                  {item.total.toFixed(0)} {categoryCurrency}
+                </Text>
+              </Pressable>
+            );
+          }
           if (item.kind === 'income') {
             return (
               <FadeInView index={index}>
@@ -1199,6 +1270,31 @@ const styles = themedStyles(() => StyleSheet.create({
     color: colors.accent,
     fontSize: 13,
     fontWeight: '600',
+  },
+  monthHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    marginTop: 6,
+  },
+  // Стрелка поворачивается вниз у раскрытого месяца — привычный знак
+  // сворачиваемого раздела.
+  monthChevronOpen: {
+    transform: [{ rotate: '90deg' }],
+  },
+  monthHeaderLabel: {
+    flex: 1,
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  monthHeaderMeta: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '500',
   },
   limitsLink: {
     flexDirection: 'row',

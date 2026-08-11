@@ -82,7 +82,7 @@ export function ProductScreen({ route, navigation }: Props) {
     const totalSpent = basePrices.reduce((s, v) => s + v, 0);
     const avgPrice = purchases.length > 0 ? totalSpent / purchases.length : 0;
     const totalWeight = purchases.reduce((s, p) => s + (p.weight_value ?? 0) * (p.quantity || 1), 0);
-    const weightUnit = purchases.find((p) => p.weight_unit)?.weight_unit ?? 'г';
+    const weightUnit = purchases.find((p) => p.weight_unit)?.weight_unit ?? 'g';
 
     const byStore = new Map<string, { total: number; count: number }>();
     purchases.forEach((p, i) => {

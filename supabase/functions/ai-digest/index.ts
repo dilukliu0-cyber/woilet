@@ -13,6 +13,7 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { getEntitlement } from '../_shared/entitlement.ts';
+import { fetchUserLanguage, languageInstruction } from '../_shared/language.ts';
 
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const DIGEST_INTERVAL_MS = 2 * 24 * 60 * 60 * 1000;
@@ -149,8 +150,10 @@ Deno.serve(async (req) => {
       limits: limits ?? [],
     };
 
+    const userLanguage = await fetchUserLanguage(serviceClient, user.id);
+
     const systemPrompt = `Ты — финансовый ассистент в приложении учёта расходов. Раз в 2 дня ты сам, без вопроса
-пользователя, пишешь ему короткий разбор трат на русском. У тебя есть: свежие чеки за ~2 дня (детально),
+пользователя, пишешь ему короткий разбор трат. У тебя есть: свежие чеки за ~2 дня (детально),
 агрегаты за месяц по категориям, часто повторяющиеся покупки за месяц и лимиты.
 Что сделать: 1) кратко — сколько и на что ушло за последние дни; 2) заметь ОДИН интересный паттерн из
 месячных данных (категория тянет бюджет, часто повторяющаяся покупка, необычно крупная трата); 3) если
@@ -166,7 +169,7 @@ ${JSON.stringify(contextSummary)}`;
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: systemPrompt }] }],
+          contents: [{ parts: [{ text: systemPrompt + languageInstruction(userLanguage) }] }],
           generationConfig: {
             temperature: 0.4,
             thinkingConfig: { thinkingBudget: 0 },

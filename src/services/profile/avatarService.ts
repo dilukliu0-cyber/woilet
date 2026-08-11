@@ -2,6 +2,7 @@ import { decode } from 'base64-arraybuffer';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../api/supabaseClient';
+import { translate } from '../../i18n/translate';
 
 // Выбор фото → квадрат 256px → загрузка в публичный bucket avatars/{userId}/avatar.jpg.
 // Возвращает путь в bucket'е или null (отмена/ошибка с сообщением).
@@ -19,7 +20,7 @@ export async function pickAndUploadAvatar(userId: string): Promise<{ path: strin
     [{ resize: { width: 256 } }],
     { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG, base64: true },
   );
-  if (!manipulated.base64) return { path: null, error: 'Не удалось подготовить фото' };
+  if (!manipulated.base64) return { path: null, error: translate('svc_photo_prepare_failed') };
 
   const path = `${userId}/avatar.jpg`;
   const { error } = await supabase.storage

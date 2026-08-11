@@ -14,6 +14,7 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { getEntitlement, proRequiredResponse } from '../_shared/entitlement.ts';
+import { fetchUserLanguage, languageInstruction } from '../_shared/language.ts';
 
 const GEMINI_MODEL = 'gemini-2.5-flash';
 
@@ -81,6 +82,8 @@ Deno.serve(async (req) => {
 
     const uniqueProducts = [...new Set((items ?? []).map((i) => i.cleaned_name))].slice(0, 200);
 
+    const userLanguage = await fetchUserLanguage(serviceClient, user.id);
+
     const prompt = `Пользователь создаёт шаблон списка покупок с названием «${name.trim()}».
 Вот товары, которые он реально покупал раньше (может быть пусто):
 ${JSON.stringify(uniqueProducts)}
@@ -98,7 +101,7 @@ ${JSON.stringify(uniqueProducts)}
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
+          contents: [{ parts: [{ text: prompt + languageInstruction(userLanguage) }] }],
           generationConfig: { temperature: 0.6, thinkingConfig: { thinkingBudget: 0 } },
         }),
       },

@@ -7,6 +7,7 @@ import type { RecognizedReceipt } from '../../types/receipt';
 import type { ReceiptRecord } from '../../types/receiptRecord';
 import { autoCheckShoppingList } from './receiptsService';
 import { runProductDedupe } from './productDedupe';
+import { translate } from '../../i18n/translate';
 
 // §13 (пожелание): фото не блокирует пользователя. Чек создаётся сразу со
 // статусом processing, Gemini работает в фоне, строка в «Расходах» обновится
@@ -44,14 +45,14 @@ export async function submitScan(
     .single();
 
   if (insertError || !receipt) {
-    return { receiptId: null, error: insertError?.message ?? 'Не удалось создать чек' };
+    return { receiptId: null, error: insertError?.message ?? translate('svc_receipt_create_failed') };
   }
 
   // Фон: не await'ится вызывающим — ошибки переводят чек в статус error.
   processInBackground(receipt.id, userId, imageBase64, baseCurrency).catch(async () => {
     await supabase
       .from('receipts')
-      .update({ status: 'error', warnings: ['Не удалось распознать чек. Удалите его и отсканируйте заново.'] })
+      .update({ status: 'error', warnings: [translate('svc_warn_not_recognized')] })
       .eq('id', receipt.id);
   });
 
@@ -64,7 +65,7 @@ export async function submitScan(
 // удаляем и прогоняем ту же фоновую обработку, что и при обычном скане.
 export async function rescanReceipt(receipt: ReceiptRecord): Promise<{ error: string | null }> {
   if (!receipt.image_path) {
-    return { error: 'У этого чека нет фото — перезаписывать нечего.' };
+    return { error: translate('svc_warn_no_photo') };
   }
 
   // Сразу переводим в «Обрабатывается», чтобы список/экран показали прогресс.
@@ -80,9 +81,9 @@ export async function rescanReceipt(receipt: ReceiptRecord): Promise<{ error: st
   if (downloadError || !blob) {
     await supabase
       .from('receipts')
-      .update({ status: 'error', warnings: ['Не удалось загрузить фото чека для перезаписи.'] })
+      .update({ status: 'error', warnings: [translate('svc_warn_photo_download_failed')] })
       .eq('id', receipt.id);
-    return { error: downloadError?.message ?? 'Не удалось загрузить фото чека.' };
+    return { error: downloadError?.message ?? translate('svc_warn_photo_download_failed') };
   }
 
   let imageBase64: string;
@@ -91,9 +92,9 @@ export async function rescanReceipt(receipt: ReceiptRecord): Promise<{ error: st
   } catch {
     await supabase
       .from('receipts')
-      .update({ status: 'error', warnings: ['Не удалось прочитать фото чека для перезаписи.'] })
+      .update({ status: 'error', warnings: [translate('svc_warn_photo_read_failed')] })
       .eq('id', receipt.id);
-    return { error: 'Не удалось прочитать фото чека.' };
+    return { error: translate('svc_warn_photo_read_failed') };
   }
 
   const baseCurrency = receipt.base_currency ?? receipt.currency ?? 'CZK';
@@ -105,7 +106,7 @@ export async function rescanReceipt(receipt: ReceiptRecord): Promise<{ error: st
   processInBackground(receipt.id, receipt.user_id, imageBase64, baseCurrency).catch(async () => {
     await supabase
       .from('receipts')
-      .update({ status: 'error', warnings: ['Не удалось распознать чек. Попробуйте перезаписать ещё раз.'] })
+      .update({ status: 'error', warnings: [translate('svc_warn_rescan_failed')] })
       .eq('id', receipt.id);
   });
 
@@ -148,7 +149,7 @@ async function processInBackground(
   if (recognized.currency !== baseCurrency) {
     rate = await fetchRate(recognized.currency, baseCurrency);
     if (rate === null) {
-      warnings.push('Курс валют недоступен — суммы в аналитике посчитаны без конвертации.');
+      warnings.push(translate('svc_warn_no_rate'));
     }
   }
 
@@ -201,18 +202,25 @@ async function processInBackground(
   runProductDedupe()
     .then((result) => {
       if (result && result.merged > 0) {
-        useToastStore.getState().show(`Одинаковые товары объединены: ${result.merged}`);
+        useToastStore.getState().show(translate('svc_products_merged', { count: result.merged }));
       }
     })
     .catch(() => {});
 
   const checked = await autoCheckShoppingList(userId, recognized.items);
   const show = useToastStore.getState().show;
+  const store = recognized.storeName?.trim();
   if (checked > 0) {
-    const word = checked === 1 ? 'товар' : checked < 5 ? 'товара' : 'товаров';
-    show(`Чек «${recognized.storeName ?? ''}» распознан. Список покупок: отмечено ${checked} ${word}`);
+    // Число вынесено в подстановку, а не склеено со словом: в английском
+    // формы другие, и собирать фразу из кусков в коде значит сломать её
+    // в любом языке, кроме русского.
+    show(
+      store
+        ? translate('svc_receipt_done_checked', { store, count: checked })
+        : translate('svc_receipt_done', {}) + ` (${checked})`,
+    );
   } else {
-    show(`Чек${recognized.storeName ? ` «${recognized.storeName}»` : ''} распознан`);
+    show(store ? translate('svc_receipt_done_store', { store }) : translate('svc_receipt_done'));
   }
 }
 

@@ -11,6 +11,7 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { getEntitlement, proRequiredResponse } from '../_shared/entitlement.ts';
+import { fetchUserLanguage, languageInstruction } from '../_shared/language.ts';
 
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const INSIGHT_INTERVAL_MS = 12 * 60 * 60 * 1000;
@@ -90,6 +91,8 @@ Deno.serve(async (req) => {
 
     if (!geminiApiKey) return jsonResponse({ error: 'GEMINI_API_KEY не настроен на сервере' }, 500);
 
+    const userLanguage = await fetchUserLanguage(serviceClient, user.id);
+
     const prompt = `Ты — ассистент по покупкам в приложении учёта расходов. По данным ниже (прогноз построен на реальной истории покупок пользователя, ты его НЕ придумываешь) напиши короткое дружелюбное сообщение от первого лица, 2-4 предложения, в духе:
 "Я проанализировал твои покупки. Скорее всего, скоро понадобятся: • Кофе • Молоко".
 Используй ТОЛЬКО товары из JSON — не добавляй ничего своего. Если один из списков пуст, просто не упоминай его.
@@ -103,7 +106,7 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
+          contents: [{ parts: [{ text: prompt + languageInstruction(userLanguage) }] }],
           generationConfig: { temperature: 0.5, thinkingConfig: { thinkingBudget: 0 } },
         }),
       },

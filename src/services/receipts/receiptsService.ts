@@ -1,6 +1,7 @@
 import { decode } from 'base64-arraybuffer';
 import { supabase } from '../api/supabaseClient';
 import type { RecognizedItem, RecognizedReceipt } from '../../types/receipt';
+import { translate } from '../../i18n/translate';
 
 type SaveReceiptOptions = {
   baseCurrency: string;
@@ -90,7 +91,7 @@ export async function saveReceipt(
   if (uploadError) {
     return {
       receiptId: null,
-      error: `Не удалось загрузить фото: ${uploadError.message}`,
+      error: `${translate('svc_photo_upload_failed')}: ${uploadError.message}`,
       duplicate: null,
       checkedShoppingItems: 0,
     };
@@ -102,7 +103,7 @@ export async function saveReceipt(
   const rate = await getExchangeRate(recognized.currency, options.baseCurrency);
   const warnings = [...recognized.warnings];
   if (rate === null && recognized.currency !== options.baseCurrency) {
-    warnings.push('Курс валют недоступен — суммы в аналитике посчитаны без конвертации.');
+    warnings.push(translate('svc_warn_no_rate'));
   }
 
   const { data: receipt, error: receiptError } = await supabase
@@ -129,7 +130,7 @@ export async function saveReceipt(
   if (receiptError || !receipt) {
     return {
       receiptId: null,
-      error: `Не удалось сохранить чек: ${receiptError?.message}`,
+      error: `${translate('svc_receipt_save_failed')}: ${receiptError?.message}`,
       duplicate: null,
       checkedShoppingItems: 0,
     };
@@ -157,7 +158,7 @@ export async function saveReceipt(
   if (itemsError) {
     return {
       receiptId: null,
-      error: `Не удалось сохранить товары: ${itemsError.message}`,
+      error: `${translate('svc_items_save_failed')}: ${itemsError.message}`,
       duplicate: null,
       checkedShoppingItems: 0,
     };
@@ -225,7 +226,7 @@ export async function addManualExpense(
     .single();
 
   if (receiptError || !receipt) {
-    return { error: receiptError?.message ?? 'Не удалось сохранить расход' };
+    return { error: receiptError?.message ?? translate('svc_expense_save_failed') };
   }
 
   const { error: itemError } = await supabase.from('receipt_items').insert({

@@ -1,5 +1,6 @@
 import { supabase } from '../api/supabaseClient';
 import type { RecognizedReceipt } from '../../types/receipt';
+import { translate } from '../../i18n/translate';
 
 type ScanReceiptResult =
   | { data: RecognizedReceipt; error: null }
@@ -16,10 +17,10 @@ export async function scanReceipt(
   );
 
   if (error) {
-    return { data: null, error: error.message ?? 'Не удалось обработать чек' };
+    return { data: null, error: error.message ?? translate('svc_scan_failed') };
   }
   if (!data?.result) {
-    return { data: null, error: data?.error ?? 'Не удалось обработать чек' };
+    return { data: null, error: data?.error ?? translate('svc_scan_failed') };
   }
 
   return { data: data.result, error: null };

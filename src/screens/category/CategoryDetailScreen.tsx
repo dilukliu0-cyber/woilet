@@ -181,7 +181,7 @@ export function CategoryDetailScreen({ route, navigation }: Props) {
                     {product.count === 1
                       ? t('category_detail_purchase_singular')
                       : t('category_detail_purchase_plural')}
-                    {product.weight > 0 ? ` · ${product.weight.toFixed(0)} ${product.weightUnit ?? 'г'}` : ''}
+                    {product.weight > 0 ? ` · ${product.weight.toFixed(0)} ${product.weightUnit ?? t('unit_gram_short')}` : ''}
                   </Text>
                 </View>
                 <Text style={styles.productTotal}>
