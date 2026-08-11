@@ -4,9 +4,11 @@ import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { SelectableRow } from '../../components/ui/SelectableRow';
 import { useT } from '../../i18n/useT';
+import { useLocaleStore } from '../../store/localeStore';
+import { INTL_LOCALE } from '../../i18n/translations';
 import type { OnboardingStackParamList } from '../../navigation/types';
 import { useSettingsStore } from '../../store/settingsStore';
-import { CURRENCIES } from '../../utils/currencies';
+import { CURRENCIES, currencyName } from '../../utils/currencies';
 import { colors } from '../../theme/colors';
 import { themedStyles } from '../../theme/themedStyles';
 
@@ -14,6 +16,7 @@ type Props = NativeStackScreenProps<OnboardingStackParamList, 'Currency'>;
 
 export function CurrencyScreen({ route }: Props) {
   const t = useT();
+  const intlLocale = INTL_LOCALE[useLocaleStore((state) => state.locale)];
   const { language } = route.params;
   const updateSettings = useSettingsStore((state) => state.updateSettings);
   const completeOnboarding = useSettingsStore((state) => state.completeOnboarding);
@@ -51,7 +54,7 @@ export function CurrencyScreen({ route }: Props) {
           {visible.map((currency) => (
             <SelectableRow
               key={currency.code}
-              label={`${currency.name} (${currency.symbol}) · ${currency.code}`}
+              label={`${currencyName(currency.code, intlLocale)} (${currency.symbol}) · ${currency.code}`}
               selected={selected === currency.code}
               onPress={() => setSelected(currency.code)}
             />

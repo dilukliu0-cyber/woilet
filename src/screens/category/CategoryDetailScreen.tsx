@@ -20,6 +20,7 @@ import { themedStyles } from '../../theme/themedStyles';
 import { CATEGORY_ICON_BY_NAME } from '../../utils/categoryIconMap';
 import { getCategoryIcon } from '../../utils/categoryIcons';
 import { preferredDisplayName, productKey } from '../../utils/productKey';
+import { formatTotals } from '../../utils/measure';
 
 type ProductRow = {
   cleaned_name: string;
@@ -49,6 +50,8 @@ export function CategoryDetailScreen({ route, navigation }: Props) {
   const [totalAll, setTotalAll] = useState(0);
   const [currency, setCurrency] = useState('');
   const [loading, setLoading] = useState(true);
+
+  const unitLabels = { g: t('unit_g'), kg: t('unit_kg'), ml: t('unit_ml'), l: t('unit_l') };
 
   // useFocusEffect, а не useEffect: если категорию открыть повторно (в т.ч.
   // после только что отсканированного чека), React Navigation при navigate()
@@ -97,23 +100,27 @@ export function CategoryDetailScreen({ route, navigation }: Props) {
   const popular = useMemo(() => {
     const byKey = new Map<
       string,
-      { total: number; count: number; weight: number; weightUnit: string | null; variants: string[] }
+      {
+        total: number;
+        count: number;
+        variants: string[];
+        measures: { value: number | null; unit: string | null; quantity: number }[];
+      }
     >();
     for (const row of rows) {
       const key = productKey(row.cleaned_name);
       if (!key) continue;
-      const entry = byKey.get(key) ?? { total: 0, count: 0, weight: 0, weightUnit: null, variants: [] };
+      const entry = byKey.get(key) ?? { total: 0, count: 0, variants: [], measures: [] };
       entry.total += row.price * (row.receipt?.exchange_rate ?? 1);
       entry.count += 1;
-      entry.weight += (row.weight_value ?? 0) * (row.quantity || 1);
-      if (row.weight_unit) entry.weightUnit = row.weight_unit;
+      entry.measures.push({ value: row.weight_value, unit: row.weight_unit, quantity: row.quantity });
       entry.variants.push(row.cleaned_name);
       byKey.set(key, entry);
     }
     return [...byKey.values()]
-      .map((entry) => ({ ...entry, name: preferredDisplayName(entry.variants) }))
+      .map((entry) => ({ ...entry, name: preferredDisplayName(entry.variants), measure: formatTotals(entry.measures, unitLabels) }))
       .sort((a, b) => b.total - a.total);
-  }, [rows]);
+  }, [rows, unitLabels.g]);
 
   if (loading) {
     return (
@@ -181,7 +188,7 @@ export function CategoryDetailScreen({ route, navigation }: Props) {
                     {product.count === 1
                       ? t('category_detail_purchase_singular')
                       : t('category_detail_purchase_plural')}
-                    {product.weight > 0 ? ` · ${product.weight.toFixed(0)} ${product.weightUnit ?? t('unit_gram_short')}` : ''}
+                    {product.measure ? ` · ${product.measure}` : ''}
                   </Text>
                 </View>
                 <Text style={styles.productTotal}>

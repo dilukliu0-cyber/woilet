@@ -16,6 +16,7 @@ import { useLocaleStore } from '../../store/localeStore';
 import { colors, getCategoryColor } from '../../theme/colors';
 import { themedStyles } from '../../theme/themedStyles';
 import { productKey } from '../../utils/productKey';
+import { formatTotals } from '../../utils/measure';
 
 type PurchaseRow = {
   cleaned_name: string;
@@ -43,6 +44,8 @@ export function ProductScreen({ route, navigation }: Props) {
   const userId = useAuthStore((state) => state.session?.user.id);
   const [purchases, setPurchases] = useState<PurchaseRow[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const unitLabels = { g: t('unit_g'), kg: t('unit_kg'), ml: t('unit_ml'), l: t('unit_l') };
 
   // useFocusEffect, а не useEffect — та же причина, что в CategoryDetailScreen:
   // без него список покупок не подхватывал только что отсканированный чек,
@@ -81,8 +84,13 @@ export function ProductScreen({ route, navigation }: Props) {
     const basePrices = purchases.map((p) => p.price * (p.receipt?.exchange_rate ?? 1));
     const totalSpent = basePrices.reduce((s, v) => s + v, 0);
     const avgPrice = purchases.length > 0 ? totalSpent / purchases.length : 0;
-    const totalWeight = purchases.reduce((s, p) => s + (p.weight_value ?? 0) * (p.quantity || 1), 0);
-    const weightUnit = purchases.find((p) => p.weight_unit)?.weight_unit ?? 'g';
+    // Складывать weight_value как есть нельзя: единицы в базе разные
+    // («г» и «кг», «л» и «L»), а подпись бралась из первой покупки —
+    // 665 г и 0.4 кг превращались в «665.4 кг».
+    const totalMeasure = formatTotals(
+      purchases.map((p) => ({ value: p.weight_value, unit: p.weight_unit, quantity: p.quantity })),
+      unitLabels,
+    );
 
     const byStore = new Map<string, { total: number; count: number }>();
     purchases.forEach((p, i) => {
@@ -104,8 +112,8 @@ export function ProductScreen({ route, navigation }: Props) {
       }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
-    return { currency, category, totalSpent, avgPrice, totalWeight, weightUnit, stores, chronological };
-  }, [purchases]);
+    return { currency, category, totalSpent, avgPrice, totalMeasure, stores, chronological };
+  }, [purchases, unitLabels.g]);
 
   if (loading) {
     return (
@@ -115,7 +123,7 @@ export function ProductScreen({ route, navigation }: Props) {
     );
   }
 
-  const { currency, category, totalSpent, avgPrice, totalWeight, weightUnit, stores, chronological } = derived;
+  const { currency, category, totalSpent, avgPrice, totalMeasure, stores, chronological } = derived;
   const priceSeries = chronological.map((h) => h.price);
 
   return (
@@ -136,8 +144,8 @@ export function ProductScreen({ route, navigation }: Props) {
         <FadeInView index={1}>
           <View style={styles.statsRow}>
             <StatCard value={`${purchases.length}`} label={t('product_purchases_label')} />
-            {totalWeight > 0 && (
-              <StatCard value={`${totalWeight.toFixed(0)} ${weightUnit}`} label={t('product_quantity_label')} />
+            {totalMeasure !== '' && (
+              <StatCard value={totalMeasure} label={t('product_quantity_label')} />
             )}
             <StatCard value={`${avgPrice.toFixed(0)} ${currency}`} label={t('product_avg_price_label')} />
           </View>

@@ -24,12 +24,13 @@ import { supabase } from '../../services/api/supabaseClient';
 import { avatarUrl, pickAndUploadAvatar } from '../../services/profile/avatarService';
 import { sendTestNotification } from '../../services/notifications/pushNotifications';
 import { useT } from '../../i18n/useT';
-import { LOCALES } from '../../i18n/translations';
+import { INTL_LOCALE, LOCALES } from '../../i18n/translations';
+import { useLocaleStore } from '../../store/localeStore';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { FREE_SCAN_LIMIT, scansLeft, useSubscriptionStore } from '../../store/subscriptionStore';
 import { useToastStore } from '../../store/toastStore';
-import { CURRENCIES } from '../../utils/currencies';
+import { CURRENCIES, currencyName } from '../../utils/currencies';
 import { colors } from '../../theme/colors';
 import { themedStyles } from '../../theme/themedStyles';
 
@@ -38,6 +39,7 @@ import { themedStyles } from '../../theme/themedStyles';
 // через единственный пункт «Настройка профиля» в рулетке аватарки.
 export function ProfileScreen() {
   const t = useT();
+  const intlLocale = INTL_LOCALE[useLocaleStore((state) => state.locale)];
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const insets = useSafeAreaInsets();
   const session = useAuthStore((state) => state.session);
@@ -67,9 +69,13 @@ export function ProfileScreen() {
     const q = currencyQuery.trim().toLowerCase();
     if (!q) return CURRENCIES;
     return CURRENCIES.filter(
-      (c) => c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q) || c.symbol.toLowerCase() === q,
+      (c) =>
+        c.code.toLowerCase().includes(q) ||
+        currencyName(c.code, intlLocale).toLowerCase().includes(q) ||
+        c.name.toLowerCase().includes(q) ||
+        c.symbol.toLowerCase() === q,
     );
-  }, [currencyQuery]);
+  }, [currencyQuery, intlLocale]);
 
   async function handlePickAvatar() {
     if (!userId || uploadingAvatar) return;
@@ -231,7 +237,7 @@ export function ProfileScreen() {
               <Text style={styles.currencyValue}>
                 {(() => {
                   const cur = CURRENCIES.find((c) => c.code === (settings?.currency ?? 'CZK'));
-                  return cur ? `${cur.name} (${cur.symbol}) · ${cur.code}` : settings?.currency ?? 'CZK';
+                  return cur ? `${currencyName(cur.code, intlLocale)} (${cur.symbol}) · ${cur.code}` : settings?.currency ?? 'CZK';
                 })()}
               </Text>
               <Text style={styles.currencyChange}>{t('profile_change')}</Text>
@@ -250,7 +256,7 @@ export function ProfileScreen() {
                 {visibleCurrencies.map((currency) => (
                   <SelectableRow
                     key={currency.code}
-                    label={`${currency.name} (${currency.symbol}) · ${currency.code}`}
+                    label={`${currencyName(currency.code, intlLocale)} (${currency.symbol}) · ${currency.code}`}
                     selected={settings?.currency === currency.code}
                     onPress={() => {
                       updateSettings({ currency: currency.code });

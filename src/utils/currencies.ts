@@ -1,4 +1,5 @@
-// Мировые валюты (ISO 4217): код, символ, русское название.
+// Мировые валюты (ISO 4217): код, символ, название на русском.
+// Название используется только как запасное — см. currencyName() внизу файла.
 // Курсы для любой из них отдаёт open.er-api.com, поэтому список ограничен
 // только здравым смыслом, а не бэкендом.
 
@@ -81,3 +82,57 @@ export const CURRENCIES: Currency[] = [
 export function getCurrencySymbol(code: string): string {
   return CURRENCIES.find((c) => c.code === code)?.symbol ?? code;
 }
+
+/**
+ * Локализованное название валюты. Раньше в списке всегда стояли русские
+ * названия, и в английском интерфейсе «Чешская крона» соседствовала с
+ * «Main currency».
+ *
+ * Названия берём у системы через Intl, а не заводим 73 валюты × 3 языка
+ * в словарь: столько строк невозможно поддерживать, а Intl знает их для
+ * всех локалей сразу. Если API недоступно, откатываемся на встроенное
+ * название для русского и на код валюты для остальных языков — показать
+ * «CZK» лучше, чем русский текст в английском интерфейсе.
+ */
+export function currencyName(code: string, intlLocale: string): string {
+  try {
+    const names = new Intl.DisplayNames([intlLocale], { type: 'currency' });
+    const name = names.of(code);
+    if (name && name !== code) return name;
+  } catch {
+    // Intl.DisplayNames нет в этой среде — уходим на запасной вариант.
+  }
+  if (intlLocale.startsWith('ru')) {
+    return CURRENCIES.find((c) => c.code === code)?.name ?? code;
+  }
+  return FALLBACK_EN[code] ?? code;
+}
+
+// Запасные английские названия на случай, если Intl.DisplayNames нет в
+// среде (Hermes на устройстве поддерживает не весь Intl). Не все 73 валюты,
+// а те, которыми реально пользуются: для остальных код валюты рядом с
+// символом читается достаточно.
+const FALLBACK_EN: Record<string, string> = {
+  CZK: 'Czech koruna',
+  EUR: 'Euro',
+  USD: 'US dollar',
+  GBP: 'Pound sterling',
+  UAH: 'Ukrainian hryvnia',
+  PLN: 'Polish zloty',
+  RUB: 'Russian ruble',
+  CHF: 'Swiss franc',
+  SEK: 'Swedish krona',
+  NOK: 'Norwegian krone',
+  DKK: 'Danish krone',
+  HUF: 'Hungarian forint',
+  RON: 'Romanian leu',
+  BGN: 'Bulgarian lev',
+  TRY: 'Turkish lira',
+  CAD: 'Canadian dollar',
+  AUD: 'Australian dollar',
+  JPY: 'Japanese yen',
+  CNY: 'Chinese yuan',
+  INR: 'Indian rupee',
+  KZT: 'Kazakhstani tenge',
+  GEL: 'Georgian lari',
+};

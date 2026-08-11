@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
       await Promise.all([
         userClient
           .from('receipt_items')
-          .select('cleaned_name, category_name, price, quantity, receipt:receipts(store_name, purchase_date)')
+          .select('cleaned_name, category_name, price, quantity, weight_value, weight_unit, receipt:receipts(store_name, purchase_date)')
           .order('created_at', { ascending: false })
           .limit(300),
         userClient
@@ -199,7 +199,10 @@ Deno.serve(async (req) => {
       if (date && date >= monthStartStr) {
         categoryTotals[item.category_name] = (categoryTotals[item.category_name] ?? 0) + (item.price ?? 0);
       }
-      productCounts[item.cleaned_name] = (productCounts[item.cleaned_name] ?? 0) + 1;
+      // Считаем штуки, а не строки чека: покупка «3 × паштет» — это три
+      // штуки, а не одна, иначе «часто покупаемое» занижено.
+      const qty = Number((item as { quantity?: number }).quantity) || 1;
+      productCounts[item.cleaned_name] = (productCounts[item.cleaned_name] ?? 0) + qty;
     }
     const repeatedProducts = Object.entries(productCounts)
       .filter(([, count]) => count >= 3)
@@ -235,6 +238,9 @@ Deno.serve(async (req) => {
 - Сравнивай траты с лимитами (limits в JSON) и предупреждай о приближении к ним.
 - Замечай закономерности: в каком магазине дороже, какие категории растут.
 - Отвечай на вопросы «сколько я потратил», «на что уходит больше всего» — цифры бери из monthCategoryTotals.
+- Учитывай количество и объём: у каждой позиции есть quantity, weight_value и weight_unit. Цену
+  сравнивай в пересчёте на литр/килограмм, а не за упаковку: 1.5 л и 0.5 л по цене напрямую не
+  сравнимы. Когда называешь, сколько чего куплено, указывай штуки или объём, а не только сумму.
 - Используй ТОЛЬКО данные из JSON ниже. Не выдумывай товары, цены и проценты. Если данных мало — скажи честно и предложи отсканировать больше чеков.
 - КРАТКО. Не больше 3 предложений подряд без переноса строки. Если пунктов несколько — маркированный
   список, каждый пункт с новой строки и не длиннее одной строки. Максимум 5 пунктов.
