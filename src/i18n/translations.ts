@@ -430,6 +430,10 @@ const ru = {
   svc_products_merged: 'Одинаковые товары объединены: {count}',
   svc_test_notification: 'Уведомления работают! 🎉',
   unit_gram_short: 'г',
+  svc_template_create_failed: 'Не удалось создать шаблон',
+  svc_list_get_failed: 'Не удалось получить список',
+  svc_list_build_failed: 'Не удалось составить список',
+  intro_limit_example: 'лимит «Снеки»',
 } as const;
 
 export type TranslationKey = keyof typeof ru;
@@ -835,6 +839,10 @@ const en: Dictionary = {
   svc_products_merged: 'Duplicate products merged: {count}',
   svc_test_notification: 'Notifications are working! 🎉',
   unit_gram_short: 'g',
+  svc_template_create_failed: 'Could not create the template',
+  svc_list_get_failed: 'Could not get the list',
+  svc_list_build_failed: 'Could not build the list',
+  intro_limit_example: 'Snacks limit',
 };
 
 const cs: Dictionary = {
@@ -1237,6 +1245,10 @@ const cs: Dictionary = {
   svc_products_merged: 'Stejné produkty sloučeny: {count}',
   svc_test_notification: 'Oznámení fungují! 🎉',
   unit_gram_short: 'g',
+  svc_template_create_failed: 'Šablonu se nepodařilo vytvořit',
+  svc_list_get_failed: 'Nepodařilo se získat seznam',
+  svc_list_build_failed: 'Nepodařilo se sestavit seznam',
+  intro_limit_example: 'limit „Snacky“',
 };
 
 export const dictionaries: Record<Locale, Dictionary> = { ru, en, cs };

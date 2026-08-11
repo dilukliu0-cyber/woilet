@@ -4,6 +4,7 @@ import { Animated, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { colors } from '../../theme/colors';
 import { themedStyles } from '../../theme/themedStyles';
+import { translate } from '../../i18n/translate';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const SIZE = 220;
@@ -270,7 +271,7 @@ export function LimitsIllustration({ active }: { active: boolean }) {
         <Animated.Text style={[styles.chartNumber, { color: percentColor as unknown as string }]}>
           {percentText}%
         </Animated.Text>
-        <Text style={styles.chartSub}>лимит «Снеки»</Text>
+        <Text style={styles.chartSub}>{translate('intro_limit_example')}</Text>
       </View>
       <Animated.View style={[styles.warnBadge, { transform: [{ rotate: shake.interpolate({ inputRange: [-8, 8], outputRange: ['-14deg', '14deg'] }) }] }]}>
         <ShieldAlert color={colors.background} size={16} strokeWidth={2.25} />
@@ -305,7 +306,7 @@ export function FamilyIllustration({ active }: { active: boolean }) {
       <View style={styles.familyRow}>
         <View style={[styles.phone, { borderColor: colors.accent }]}>
           <View style={[styles.avatar, { backgroundColor: colors.accent }]}>
-            <Text style={styles.avatarLetter}>Т</Text>
+            <Text style={styles.avatarLetter}>A</Text>
           </View>
           <View style={styles.phoneLine} />
         </View>
@@ -335,7 +336,7 @@ export function FamilyIllustration({ active }: { active: boolean }) {
 
         <View style={[styles.phone, { borderColor: colors.warning }]}>
           <View style={[styles.avatar, { backgroundColor: colors.warning }]}>
-            <Text style={styles.avatarLetter}>М</Text>
+            <Text style={styles.avatarLetter}>M</Text>
           </View>
           <View style={styles.phoneLine} />
         </View>

@@ -1,5 +1,6 @@
 import { supabase } from '../api/supabaseClient';
 import { productKey } from '../../utils/productKey';
+import { translate } from '../../i18n/translate';
 
 // Умные покупки: прогнозы строятся ТОЛЬКО на реальной истории чеков.
 // Если данных мало (меньше 3 покупок товара) — прогноза нет, ничего не выдумываем.
@@ -125,7 +126,7 @@ export async function createTemplate(
     .insert({ user_id: userId, name })
     .select('id')
     .single();
-  if (error || !template) return error?.message ?? 'Не удалось создать шаблон';
+  if (error || !template) return error?.message ?? translate('svc_template_create_failed');
 
   if (itemTexts.length > 0) {
     const { error: itemsError } = await supabase.from('shopping_template_items').insert(
@@ -147,8 +148,8 @@ export async function suggestTemplateItems(name: string): Promise<{ items: strin
     'shopping-template-suggest',
     { body: { name } },
   );
-  if (error) return { items: [], error: error.message ?? 'Не удалось получить список' };
-  if (!data?.items) return { items: [], error: data?.error ?? 'Не удалось получить список' };
+  if (error) return { items: [], error: error.message ?? translate('svc_list_get_failed') };
+  if (!data?.items) return { items: [], error: data?.error ?? translate('svc_list_get_failed') };
   return { items: data.items, error: null };
 }
 
@@ -164,8 +165,8 @@ export async function requestAiShoppingList(
     recipe?: string[] | null;
     error?: string;
   }>('shopping-ai-generate', { body: { query } });
-  if (error) return { items: [], recipe: null, error: error.message ?? 'Не удалось составить список' };
-  if (!data?.items) return { items: [], recipe: null, error: data?.error ?? 'Не удалось составить список' };
+  if (error) return { items: [], recipe: null, error: error.message ?? translate('svc_list_build_failed') };
+  if (!data?.items) return { items: [], recipe: null, error: data?.error ?? translate('svc_list_build_failed') };
   return { items: data.items, recipe: data.recipe ?? null, error: null };
 }
 
