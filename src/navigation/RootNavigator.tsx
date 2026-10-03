@@ -22,10 +22,12 @@ import { OnboardingNavigator } from './OnboardingNavigator';
 import { themedStyles } from '../theme/themedStyles';
 import { registerForPushNotifications } from '../services/notifications/pushNotifications';
 
-// Deep link: woilet://scan открывает сканер напрямую — для «Касания задней
-// панели» iPhone (Back Tap → быстрая команда «Открыть URL»).
+// Deep link: wailet://scan открывает сканер напрямую — для «Касания задней
+// панели» iPhone (Back Tap → быстрая команда «Открыть URL»). Старый
+// woilet://scan тоже принимаем: на него могли настроить команды до
+// переименования приложения.
 const linking: LinkingOptions<AppStackParamList> = {
-  prefixes: [Linking.createURL('/'), 'woilet://'],
+  prefixes: [Linking.createURL('/'), 'wailet://', 'woilet://'],
   config: {
     // При холодном старте по ссылке под сканером остаются табы,
     // чтобы «назад» вёл на Главную, а не закрывал приложение.

@@ -2,8 +2,8 @@ Pod::Spec.new do |s|
   s.name           = 'LiveActivity'
   s.version        = '1.0.0'
   s.summary        = 'Мост между JS и ActivityKit для Live Activity скана чека'
-  s.description    = 'Локальный модуль Woilet: запуск, обновление и завершение Live Activity.'
-  s.author         = 'Woilet'
+  s.description    = 'Локальный модуль Wailet: запуск, обновление и завершение Live Activity.'
+  s.author         = 'Wailet'
   s.homepage       = 'https://github.com/dilukliu0-cyber/woilet'
   s.license        = { :type => 'MIT' }
   s.platforms      = {

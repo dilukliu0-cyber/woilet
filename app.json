@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "Woilet",
+    "name": "Wailet",
     "slug": "woilet",
     "owner": "woilet",
     "version": "1.0.0",
-    "scheme": "woilet",
+    "scheme": ["wailet", "woilet"],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.dilukliu0.iospochet",
+      "bundleIdentifier": "com.wailet.app",
       "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,

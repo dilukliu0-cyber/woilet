@@ -48,7 +48,7 @@ export async function registerForPushNotifications(userId: string): Promise<void
 
 export async function sendTestNotification(): Promise<void> {
   await Notifications.scheduleNotificationAsync({
-    content: { title: 'Woilet', body: translate('svc_test_notification') },
+    content: { title: 'Wailet', body: translate('svc_test_notification') },
     trigger: null,
   });
 }

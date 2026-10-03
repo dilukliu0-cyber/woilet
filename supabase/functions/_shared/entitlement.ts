@@ -107,7 +107,7 @@ export async function checkScanQuota(
 export function proRequiredResponse(corsHeaders: Record<string, string>, detail?: unknown) {
   return new Response(
     JSON.stringify({
-      error: 'Доступно по подписке Woilet Pro',
+      error: 'Доступно по подписке Wailet Pro',
       code: 'pro_required',
       ...(detail && typeof detail === 'object' ? detail : {}),
     }),

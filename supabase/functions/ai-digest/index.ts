@@ -195,7 +195,7 @@ ${JSON.stringify(contextSummary)}`;
     await userClient.from('user_settings').update({ last_ai_digest_at: now.toISOString() }).eq('user_id', user.id);
 
     if (settings?.notifications_enabled !== false && settings?.push_token) {
-      sendPushNotification(settings.push_token, 'Woilet', replyText).catch((error) =>
+      sendPushNotification(settings.push_token, 'Wailet', replyText).catch((error) =>
         console.error('push-notification error', error),
       );
     }
