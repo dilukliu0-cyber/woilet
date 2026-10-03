@@ -10,7 +10,7 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.wailet.app",
+      "bundleIdentifier": "com.dilukliu0.wailet",
       "appleTeamId": "RH67B2MANC",
       "buildNumber": "1",
       "infoPlist": {
