@@ -15,7 +15,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.dilukliu0.wailet",
       "appleTeamId": "RH67B2MANC",
-      "buildNumber": "2",
+      "buildNumber": "3",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSSupportsLiveActivities": true
