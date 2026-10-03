@@ -4,6 +4,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   CalendarDays,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   CloudUpload,
   LayoutGrid,
@@ -35,6 +36,7 @@ import {
   Platform,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -407,6 +409,116 @@ export function ExpensesScreen() {
     setWalletMode((open) => !open);
   }
 
+  // --- Лента экранов (неделя / месяц / календарь) ---
+  // Одно положение на всё: его меняет палец (лента — обычная горизонтальная
+  // прокрутка с постраничной доводкой), а экраны и подписи над карточкой
+  // только отражают его. На каждой смене экрана — щелчок, как трещотка у
+  // колеса таймера.
+  const pagerRef = useRef<ScrollView>(null);
+  const pagerX = useRef(new Animated.Value(0)).current;
+  const [pageWidth, setPageWidth] = useState(0);
+  const pagerPosition = useRef(0);
+  const tickIndex = useRef(CARD_VIEWS.indexOf(cardViewRef.current));
+  const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dragStartX = useRef(0);
+  const pageProgress = useMemo(
+    () => Animated.divide(pagerX, pageWidth > 0 ? pageWidth : 1),
+    [pagerX, pageWidth],
+  );
+
+  // Начальное положение ставим сами, когда ширина известна: contentOffset
+  // браузер игнорирует, и лента открывалась на первом экране, а не на том,
+  // что выбран.
+  useEffect(() => {
+    if (pageWidth <= 0) return;
+    const x = CARD_VIEWS.indexOf(cardViewRef.current) * pageWidth;
+    requestAnimationFrame(() => pagerRef.current?.scrollTo({ x, animated: false }));
+    pagerX.setValue(x);
+    pagerPosition.current = x;
+    tickIndex.current = CARD_VIEWS.indexOf(cardViewRef.current);
+  }, [pageWidth, pagerX]);
+
+  function pageStyle(i: number) {
+    const inputRange = [i - 1, i, i + 1];
+    return {
+      width: pageWidth,
+      opacity: pageProgress.interpolate({ inputRange, outputRange: [0.25, 1, 0.25], extrapolate: 'clamp' }),
+      transform: [
+        { perspective: 900 },
+        {
+          rotateY: pageProgress.interpolate({
+            inputRange,
+            outputRange: ['58deg', '0deg', '-58deg'],
+            extrapolate: 'clamp',
+          }),
+        },
+        {
+          scale: pageProgress.interpolate({ inputRange, outputRange: [0.86, 1, 0.86], extrapolate: 'clamp' }),
+        },
+      ],
+    };
+  }
+
+  function handlePagerScroll(event: { nativeEvent: { contentOffset: { x: number } } }) {
+    const x = event.nativeEvent.contentOffset.x;
+    pagerPosition.current = x;
+    if (pageWidth <= 0) return;
+    const nearest = Math.min(Math.max(Math.round(x / pageWidth), 0), CARD_VIEWS.length - 1);
+    if (nearest !== tickIndex.current) {
+      tickIndex.current = nearest;
+      haptics.selection();
+    }
+    // Веб не присылает onMomentumScrollEnd надёжно: остановку ловим по паузе.
+    if (Platform.OS === 'web') {
+      if (settleTimer.current) clearTimeout(settleTimer.current);
+      settleTimer.current = setTimeout(() => settlePager(pagerPosition.current), 140);
+    }
+  }
+
+  function settlePager(x: number) {
+    if (pageWidth <= 0) return;
+    const index = Math.min(Math.max(Math.round(x / pageWidth), 0), CARD_VIEWS.length - 1);
+    if (Math.abs(x - index * pageWidth) > 1) {
+      pagerRef.current?.scrollTo({ x: index * pageWidth, animated: true });
+    }
+    const next = CARD_VIEWS[index];
+    if (next === cardViewRef.current) return;
+    cardViewRef.current = next;
+    setCardView(next);
+    // Фильтр по дню живёт только в календаре — уходя из него, снимаем,
+    // иначе список чеков остался бы урезанным без видимой причины.
+    if (next !== 'calendar') setSelectedDay(null);
+  }
+
+  function goToPage(index: number) {
+    pagerRef.current?.scrollTo({ x: index * pageWidth, animated: true });
+    // На iOS программная прокрутка не присылает onMomentumScrollEnd.
+    setTimeout(() => settlePager(index * pageWidth), 380);
+  }
+
+  // Жест по подписям над карточкой крутит ту же ленту.
+  const wheelDragStart = useCallback(() => {
+    dragStartX.current = pagerPosition.current;
+  }, []);
+  const wheelDragMove = useCallback((pages: number) => {
+    const max = (CARD_VIEWS.length - 1) * pageWidth;
+    const x = Math.min(Math.max(dragStartX.current + pages * pageWidth, 0), max);
+    pagerRef.current?.scrollTo({ x, animated: false });
+    // Программная прокрутка без анимации не всегда присылает onScroll —
+    // двигаем положение и трещотку сами.
+    pagerX.setValue(x);
+    handlePagerScroll({ nativeEvent: { contentOffset: { x } } });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageWidth]);
+  const wheelDragEnd = useCallback((velocityPages: number) => {
+    if (pageWidth <= 0) return;
+    // Бросок пальцем докручивает дальше — как у колеса таймера.
+    const projected = pagerPosition.current / pageWidth + velocityPages * 0.15;
+    const index = Math.min(Math.max(Math.round(projected), 0), CARD_VIEWS.length - 1);
+    goToPage(index);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageWidth]);
+
   // Свайпы мышью/пером на вебе: PanResponder там срабатывает не всегда.
   function handlePointerDown(x: number, y: number) {
     cardSwipeHandled.current = false;
@@ -766,13 +878,12 @@ export function ExpensesScreen() {
             {/* Выбор вида — «барабан» между заголовком и карточкой: крутишь,
                 подписи прокатываются как на цилиндре механического календаря. */}
             <WheelSelector
-              options={[
-                { value: 'week', label: t('expenses_view_week') },
-                { value: 'month', label: t('expenses_view_month') },
-                { value: 'calendar', label: t('expenses_view_calendar') },
-              ]}
-              value={cardView}
-              onChange={switchCardView}
+              labels={[t('expenses_view_week'), t('expenses_view_month'), t('expenses_view_calendar')]}
+              progress={pageProgress}
+              onSelect={goToPage}
+              onDragStart={wheelDragStart}
+              onDragMove={wheelDragMove}
+              onDragEnd={wheelDragEnd}
             />
 
             {(
@@ -800,21 +911,96 @@ export function ExpensesScreen() {
                   </View>
                   )}
 
-                  <Animated.View
-                    style={{ opacity: contentOpacity, transform: [{ translateX: contentOffset }] }}
-                    {...(cardView === 'calendar' ? calendarSwipe.panHandlers : cardSwipe.panHandlers)}
-                    onPointerDown={(event) => handlePointerDown(event.nativeEvent.pageX, event.nativeEvent.pageY)}
-                    onPointerUp={(event) => handlePointerUp(event.nativeEvent.pageX, event.nativeEvent.pageY)}
-                  >
-                    {cardView === 'calendar' ? (
-                      <>
+                  {/* Лента из трёх экранов. Её крутит палец, экраны
+                      поворачиваются как грани барабана, а подписи над
+                      карточкой считаются из того же положения — поэтому
+                      ничего не может разъехаться. */}
+                  <View onLayout={(e) => setPageWidth(Math.round(e.nativeEvent.layout.width))}>
+                    {pageWidth > 0 && (
+                    <Animated.ScrollView
+                      ref={pagerRef}
+                      horizontal
+                      pagingEnabled
+                      showsHorizontalScrollIndicator={false}
+                      scrollEventThrottle={16}
+                      contentOffset={{ x: CARD_VIEWS.indexOf(cardViewRef.current) * pageWidth, y: 0 }}
+                      onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: pagerX } } }], {
+                        useNativeDriver: Platform.OS !== 'web',
+                        listener: handlePagerScroll,
+                      })}
+                      onMomentumScrollEnd={(e) => settlePager(e.nativeEvent.contentOffset.x)}
+                    >
+                      <Animated.View style={pageStyle(0)}>
+                        <WeeklySpendingChart
+                          receipts={visibleReceipts}
+                          currency={settings?.currency ?? categoryCurrency ?? 'CZK'}
+                          weekdayLabels={WEEKDAYS}
+                          intlLocale={intlLocale}
+                          embedded
+                        />
+                      </Animated.View>
+                      <Animated.View style={pageStyle(1)}>
+                        <View style={styles.barsWrap}>
+                          <AnimatedNumber
+                            value={monthTotal}
+                            formatter={(n) => `${n.toFixed(0)} ${categoryCurrency}`}
+                            style={styles.barsTotal}
+                          />
+                          <Text style={styles.barsTotalSub}>{periodLabel}</Text>
+                        </View>
+                        <View style={styles.legend}>
+                          {categories.map((entry) => (
+                            <Pressable
+                              key={entry.categoryName}
+                              style={styles.legendRow}
+                              onPress={() => {
+                                if (cardSwipeHandled.current) return;
+                                rootNav()?.navigate('Category', { categoryName: entry.categoryName });
+                              }}
+                            >
+                              <View style={styles.legendBody}>
+                                <View style={styles.legendTopRow}>
+                                  <Text style={styles.legendName}>{translateCategoryName(entry.categoryName, locale)}</Text>
+                                  <Text style={styles.legendAmount}>
+                                    {entry.total.toFixed(0)} {categoryCurrency}
+                                  </Text>
+                                </View>
+                                <View style={styles.barTrack}>
+                                  <View style={[styles.barFill, { width: `${Math.max((entry.total / maxCategoryTotal) * 100, 3)}%` }]} />
+                                </View>
+                              </View>
+                            </Pressable>
+                          ))}
+                        </View>
+                        {categories.length === 0 && (
+                          <View style={styles.emptyMonth}>
+                            <Text style={styles.emptyMonthText}>{t('expenses_empty_month')}</Text>
+                            <Pressable onPress={() => shiftCalMonth(-1)} hitSlop={8}>
+                              <Text style={styles.emptyMonthAction}>
+                                {t('expenses_show_month', { month: prevMonthLabel })}
+                              </Text>
+                            </Pressable>
+                          </View>
+                        )}
+                      </Animated.View>
+                      <Animated.View style={pageStyle(2)}>
                         <Animated.View style={[styles.calendarContent, {
                           opacity: calendarContentOpacity,
                           transform: [{ translateX: calendarContentOffset }],
                         }]}>
-                        <Text style={[styles.calendarTitle, styles.calendarNavTitle]}>
-                          {MONTH_NAMES[calMonth]} {calYear}
-                        </Text>
+                        {/* Месяцы листаются стрелками: горизонтальный свайп
+                            теперь крутит ленту экранов. */}
+                        <View style={styles.calendarNavRow}>
+                          <Pressable onPress={() => animateCalMonth(-1)} hitSlop={10}>
+                            <ChevronLeft color={colors.textPrimary} size={20} />
+                          </Pressable>
+                          <Text style={[styles.calendarTitle, styles.calendarNavTitle]}>
+                            {MONTH_NAMES[calMonth]} {calYear}
+                          </Text>
+                          <Pressable onPress={() => animateCalMonth(1)} hitSlop={10}>
+                            <ChevronRight color={colors.textPrimary} size={20} />
+                          </Pressable>
+                        </View>
                         <View style={styles.calendarSummary}>
                           <Text style={styles.calendarSummaryLabel}>{t('expenses_total')}</Text>
                           <Text style={styles.calendarSummaryAmount}>
@@ -872,66 +1058,10 @@ export function ExpensesScreen() {
                           })}
                         </View>
                         </Animated.View>
-                      </>
-                    ) : (
-                      <>
-                        {cardView === 'week' ? (
-                          <WeeklySpendingChart
-                            receipts={visibleReceipts}
-                            currency={settings?.currency ?? categoryCurrency ?? 'CZK'}
-                            weekdayLabels={WEEKDAYS}
-                            intlLocale={intlLocale}
-                            embedded
-                          />
-                        ) : (
-                          <>
-                            <View style={styles.barsWrap}>
-                              <AnimatedNumber
-                                value={monthTotal}
-                                formatter={(n) => `${n.toFixed(0)} ${categoryCurrency}`}
-                                style={styles.barsTotal}
-                              />
-                              <Text style={styles.barsTotalSub}>{periodLabel}</Text>
-                            </View>
-                            <View style={styles.legend}>
-                              {categories.map((entry) => (
-                                <Pressable
-                                  key={entry.categoryName}
-                                  style={styles.legendRow}
-                                  onPress={() => {
-                                    if (cardSwipeHandled.current) return;
-                                    rootNav()?.navigate('Category', { categoryName: entry.categoryName });
-                                  }}
-                                >
-                                  <View style={styles.legendBody}>
-                                    <View style={styles.legendTopRow}>
-                                      <Text style={styles.legendName}>{translateCategoryName(entry.categoryName, locale)}</Text>
-                                      <Text style={styles.legendAmount}>
-                                        {entry.total.toFixed(0)} {categoryCurrency}
-                                      </Text>
-                                    </View>
-                                    <View style={styles.barTrack}>
-                                      <View style={[styles.barFill, { width: `${Math.max((entry.total / maxCategoryTotal) * 100, 3)}%` }]} />
-                                    </View>
-                                  </View>
-                                </Pressable>
-                              ))}
-                            </View>
-                            {categories.length === 0 && (
-                              <View style={styles.emptyMonth}>
-                                <Text style={styles.emptyMonthText}>{t('expenses_empty_month')}</Text>
-                                <Pressable onPress={() => shiftCalMonth(-1)} hitSlop={8}>
-                                  <Text style={styles.emptyMonthAction}>
-                                    {t('expenses_show_month', { month: prevMonthLabel })}
-                                  </Text>
-                                </Pressable>
-                              </View>
-                            )}
-                          </>
-                        )}
-                      </>
+                      </Animated.View>
+                    </Animated.ScrollView>
                     )}
-                  </Animated.View>
+                  </View>
 
                   {/* Кошелёк — не ещё один вид трат, а остаток: поэтому не
                       сегмент, а строка, которая всегда на виду. Тап раскрывает
@@ -1194,6 +1324,11 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   cornerButtonActive: {
     backgroundColor: colors.accent,
+  },
+  calendarNavRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   cardTopRow: {
     flexDirection: 'row',
