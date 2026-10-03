@@ -40,7 +40,7 @@ import {
   View,
 } from 'react-native';
 import { WeeklySpendingChart } from '../../components/charts/WeeklySpendingChart';
-import { SegmentedControl } from '../../components/ui/SegmentedControl';
+import { WheelSelector } from '../../components/ui/WheelSelector';
 import { ReceiptListItem } from '../../components/cards/ReceiptListItem';
 import { LimitsScreen } from '../limits/LimitsScreen';
 import { AnimatedNumber } from '../../components/ui/AnimatedNumber';
@@ -740,25 +740,26 @@ export function ExpensesScreen() {
                 без трат пропадал целиком — вместе с календарём и кошельком,
                 через которые как раз и переключаются месяцы. В начале нового
                 месяца экран выглядел сломанным. */}
+            {/* Выбор вида — «барабан» между заголовком и карточкой: крутишь,
+                подписи прокатываются как на цилиндре механического календаря. */}
+            <WheelSelector
+              options={[
+                { value: 'week', label: t('expenses_view_week') },
+                { value: 'month', label: t('expenses_view_month') },
+                { value: 'calendar', label: t('expenses_view_calendar') },
+              ]}
+              value={cardView}
+              onChange={switchCardView}
+            />
+
             {(
               <FadeInView index={0}>
                 <View style={styles.chartCard}>
-                  {/* Подписанный переключатель вместо иконок в углах и
-                      3D-переворота: все три вида — траты за период, и что
-                      откроется, видно сразу. */}
+                  {/* Переключатель «только мои / вся семья» — единственное,
+                      что осталось в карточке сверху: выбор вида уехал в
+                      барабан над ней. */}
+                  {hasFamilyReceipts && (
                   <View style={styles.cardTopRow}>
-                    <View style={{ flex: 1 }}>
-                      <SegmentedControl
-                        options={[
-                          { value: 'week', label: t('expenses_view_week') },
-                          { value: 'month', label: t('expenses_view_month') },
-                          { value: 'calendar', label: t('expenses_view_calendar') },
-                        ]}
-                        value={cardView}
-                        onChange={switchCardView}
-                      />
-                    </View>
-                    {hasFamilyReceipts && (
                       <Pressable
                         style={[styles.cornerButton, showOnlyMine && styles.cornerButtonActive]}
                         onPress={() => {
@@ -773,8 +774,8 @@ export function ExpensesScreen() {
                           <Users color={colors.accent} size={18} />
                         )}
                       </Pressable>
-                    )}
                   </View>
+                  )}
 
                   <Animated.View
                     style={{ opacity: contentOpacity, transform: [{ translateX: contentOffset }] }}
@@ -1173,8 +1174,7 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   cardTopRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+    justifyContent: 'flex-end',
   },
   walletRow: {
     flexDirection: 'row',
