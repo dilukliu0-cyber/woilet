@@ -13,7 +13,7 @@ import type { AppStackParamList } from '../../navigation/types';
 import { supabase } from '../../services/api/supabaseClient';
 import { useAuthStore } from '../../store/authStore';
 import { useLocaleStore } from '../../store/localeStore';
-import { colors, getCategoryColor } from '../../theme/colors';
+import { colors } from '../../theme/colors';
 import { themedStyles } from '../../theme/themedStyles';
 import { productKey } from '../../utils/productKey';
 import { formatTotals } from '../../utils/measure';
@@ -156,7 +156,7 @@ export function ProductScreen({ route, navigation }: Props) {
             <View style={styles.chartCard}>
               <Text style={styles.sectionTitle}>{t('product_price_history')}</Text>
               <View style={styles.chartWrap}>
-                <Sparkline data={priceSeries} width={300} height={90} color={getCategoryColor(category)} />
+                <Sparkline data={priceSeries} width={300} height={90} color={colors.textPrimary} />
               </View>
               <View style={styles.chartMeta}>
                 <Text style={styles.chartMetaText}>

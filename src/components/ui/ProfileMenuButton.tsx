@@ -25,10 +25,12 @@ export function ProfileMenuButton({
   avatarUri,
   fallbackLetter,
   actions,
+  scrollY,
 }: {
   avatarUri: string | null;
   fallbackLetter: string;
   actions: ProfileMenuAction[];
+  scrollY?: Animated.Value;
 }) {
   const [open, setOpen] = useState(false);
   const t = useRef(new Animated.Value(0)).current;
@@ -72,7 +74,10 @@ export function ProfileMenuButton({
         <Pressable style={StyleSheet.absoluteFill} onPress={toggle} />
       </Animated.View>
 
-      <View style={styles.corner} pointerEvents="box-none">
+      <Animated.View
+        style={[styles.corner, scrollY && { transform: [{ translateY: Animated.multiply(scrollY, -1) }] }]}
+        pointerEvents="box-none"
+      >
         <Pressable onPress={toggle}>
           {avatarUri ? (
             <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
@@ -120,14 +125,14 @@ export function ProfileMenuButton({
             );
           })}
         </View>
-      </View>
+      </Animated.View>
     </>
   );
 }
 
 const styles = themedStyles(() => StyleSheet.create({
   backdrop: {
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: 'transparent',
   },
   corner: {
     position: 'absolute',
@@ -166,7 +171,7 @@ const styles = themedStyles(() => StyleSheet.create({
     width: STRIP_WIDTH,
     borderRadius: 16,
     backgroundColor: colors.surfaceElevated,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: colors.cardBorder,
   },
   items: {

@@ -6,10 +6,8 @@ import {
   ChevronRight,
   Clock,
   Infinity as InfinityIcon,
-  ListChecks,
   Lock,
   RotateCcw,
-  Sparkles,
   Users,
   Zap,
 } from 'lucide-react-native';
@@ -27,7 +25,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useLocaleStore } from '../../store/localeStore';
 import { FREE_SCAN_LIMIT, scansLeft, useSubscriptionStore } from '../../store/subscriptionStore';
 import { useToastStore } from '../../store/toastStore';
-import { colors, getCurrentTheme } from '../../theme/colors';
+import { colors } from '../../theme/colors';
 import { themedStyles } from '../../theme/themedStyles';
 import { haptics } from '../../utils/haptics';
 
@@ -48,12 +46,10 @@ const PLANS: { id: PlanId; titleKey: TranslationKey; price: string; perMonth?: s
 // Одинаковая плотность по всему экрану как раз и читается как шаблон.
 const HEADLINE_FEATURES: { Icon: typeof InfinityIcon; titleKey: TranslationKey; descKey: TranslationKey }[] = [
   { Icon: InfinityIcon, titleKey: 'subscription_feature_scans', descKey: 'subscription_feature_scans_desc' },
-  { Icon: Sparkles, titleKey: 'subscription_feature_chat', descKey: 'subscription_feature_chat_desc' },
 ];
 
 const COMPACT_FEATURES: { Icon: typeof Users; labelKey: TranslationKey }[] = [
   { Icon: Users, labelKey: 'subscription_feature_family_short' },
-  { Icon: ListChecks, labelKey: 'subscription_feature_insights_short' },
   { Icon: Clock, labelKey: 'subscription_feature_history_short' },
   { Icon: ArrowDownToLine, labelKey: 'subscription_feature_export_short' },
   { Icon: Zap, labelKey: 'subscription_feature_priority_short' },
@@ -403,16 +399,11 @@ function Hero({ isPro }: { isPro: boolean }) {
 }
 
 const styles = themedStyles(() => {
-  const dark = getCurrentTheme() === 'dark';
 
-  // Локальная приглушённая гамма. Глобальную палитру не трогаем: здесь
-  // зелёный работает акцентом, а не заливкой — поэтому основной тон
-  // серо-зелёный, а насыщенный цвет остаётся только у мелких меток.
-  const moss = dark ? '#7E9A8B' : '#5E7A6B';
-  const deep = dark ? '#1E4735' : '#22694A';
-  const deepPressed = dark ? '#17392A' : '#1C5A3E';
-  const hairline = dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.08)';
-  const wash = dark ? 'rgba(63,166,110,0.06)' : 'rgba(46,134,89,0.05)';
+  const moss = colors.textSecondary;
+  const deep = colors.accent;
+  const hairline = colors.cardBorder;
+  const wash = colors.accentSoft;
 
   return StyleSheet.create({
     container: {
@@ -541,7 +532,7 @@ const styles = themedStyles(() => {
     barTrack: {
       height: 3,
       borderRadius: 2,
-      backgroundColor: dark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)',
+      backgroundColor: colors.accentSoft,
       marginTop: 11,
       overflow: 'hidden',
     },
@@ -661,7 +652,7 @@ const styles = themedStyles(() => {
       height: 19,
       borderRadius: 10,
       borderWidth: 1.5,
-      borderColor: dark ? 'rgba(255,255,255,0.22)' : 'rgba(15,23,42,0.22)',
+      borderColor: colors.border,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -716,10 +707,10 @@ const styles = themedStyles(() => {
       justifyContent: 'center',
     },
     ctaPressed: {
-      backgroundColor: deepPressed,
+      backgroundColor: colors.accent,
     },
     ctaLabel: {
-      color: '#FFFFFF',
+      color: colors.background,
       fontSize: 16,
       fontWeight: '600',
       letterSpacing: -0.2,
@@ -780,7 +771,7 @@ const styles = themedStyles(() => {
       fontWeight: '500',
     },
     legalLinkMuted: {
-      opacity: 0.5,
+      textDecorationLine: 'underline',
     },
     legalDot: {
       width: 2,

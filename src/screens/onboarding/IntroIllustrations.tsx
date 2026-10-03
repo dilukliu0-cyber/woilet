@@ -105,9 +105,9 @@ export function ScanIllustration({ active }: { active: boolean }) {
 // ── 2. Диаграмма: кольцо крутится, число наматывается, «монетки» летят
 //    от центра к сегментам категорий. ───────────────────────────────────────
 const CHART_SEGMENTS = [
-  { color: '#7FAE86', from: 0, to: 150 },
-  { color: '#CB8571', from: 150, to: 250 },
-  { color: '#7B93B5', from: 250, to: 360 },
+  { from: 0, to: 150 },
+  { from: 150, to: 250 },
+  { from: 250, to: 360 },
 ];
 
 function polar(cx: number, cy: number, r: number, deg: number) {
@@ -172,7 +172,7 @@ export function ChartIllustration({ active }: { active: boolean }) {
                 cx={cx}
                 cy={cy}
                 r={radius}
-                stroke={seg.color}
+                stroke={colors.accent}
                 strokeWidth={20}
                 fill="none"
                 strokeDasharray={`${dash} ${circumference - dash}`}
@@ -190,10 +190,10 @@ export function ChartIllustration({ active }: { active: boolean }) {
         <Text style={styles.chartSub}>CZK</Text>
       </View>
       <Svg width={SIZE} height={SIZE} style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Coin t={t} delay={0.05} angle={60} tint={CHART_SEGMENTS[0].color} />
-        <Coin t={t} delay={0.18} angle={210} tint={CHART_SEGMENTS[1].color} />
-        <Coin t={t} delay={0.32} angle={310} tint={CHART_SEGMENTS[2].color} />
-        <Coin t={t} delay={0.5} angle={90} tint={CHART_SEGMENTS[0].color} />
+        <Coin t={t} delay={0.05} angle={60} tint={colors.accent} />
+        <Coin t={t} delay={0.18} angle={210} tint={colors.accent} />
+        <Coin t={t} delay={0.32} angle={310} tint={colors.accent} />
+        <Coin t={t} delay={0.5} angle={90} tint={colors.accent} />
       </Svg>
     </View>
   );
@@ -398,7 +398,6 @@ const styles = themedStyles(() => StyleSheet.create({
     position: 'absolute',
     bottom: -6,
     left: -6,
-    opacity: 0.5,
   },
   checkBadge: {
     position: 'absolute',
@@ -484,7 +483,6 @@ const styles = themedStyles(() => StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: colors.textTertiary,
-    opacity: 0.4,
   },
   syncDot: {
     position: 'absolute',

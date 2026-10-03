@@ -54,11 +54,6 @@ const styles = themedStyles(() => StyleSheet.create({
     paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: colors.accent,
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
   },
   iconWrap: {
     width: 26,

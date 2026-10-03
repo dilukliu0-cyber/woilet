@@ -1,5 +1,7 @@
-import { useFocusEffect } from '@react-navigation/native';
-import { Check, ShoppingCart, Sparkles, Trash2, Plus } from 'lucide-react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { ProLockedView } from '../../components/subscription/ProLockedView';
+import { useSubscriptionStore } from '../../store/subscriptionStore';
+import { ArrowLeft, Check, ShoppingCart, Sparkles, Trash2, Plus } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Skeleton } from '../../components/ui/Skeleton';
@@ -19,6 +21,8 @@ const FORGOTTEN_AFTER_DAYS = 7;
 // здесь только сам список: добавить/отметить/удалить товар вручную.
 export function ShoppingScreen() {
   const t = useT();
+  const navigation = useNavigation();
+  const isPro = useSubscriptionStore((state) => state.isPro);
   const userId = useAuthStore((state) => state.session?.user.id);
   const items = useShoppingListStore((state) => state.items);
   const isLoading = useShoppingListStore((state) => state.isLoading);
@@ -87,10 +91,20 @@ export function ShoppingScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.header}>
+        <Pressable style={styles.backButton} onPress={() => navigation.goBack()} hitSlop={8}>
+          <ArrowLeft color={colors.textPrimary} size={22} />
+        </Pressable>
         <ShoppingCart color={colors.accent} size={26} strokeWidth={1.75} />
         <Text style={styles.title}>{t('shopping_title')}</Text>
       </View>
 
+      {/* Покупки — функция Pro. В меню бесплатным пункта нет, но на экран
+          можно попасть по ссылке или из старой навигации — показываем
+          объяснение, а не пустой список. */}
+      {!isPro ? (
+        <ProLockedView description={t('subscription_locked_shopping')} />
+      ) : (
+        <>
       <FlatList
         data={[...pending, ...checked]}
         keyExtractor={(item) => item.id}
@@ -143,6 +157,8 @@ export function ShoppingScreen() {
           <Plus color={colors.background} size={20} />
         </Pressable>
       </View>
+        </>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -151,6 +167,13 @@ const styles = themedStyles(() => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: -8,
   },
   header: {
     flexDirection: 'row',

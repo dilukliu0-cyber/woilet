@@ -27,7 +27,7 @@ const CROP_MARGIN = 16;
 // светлой теме colors.textPrimary становится тёмным и иконки/текст на
 // тёмной полупрозрачной подложке (или чёрном фоне) пропадают из виду.
 const OVERLAY_TEXT = '#FFFFFF';
-const OVERLAY_DARK = '#0A0A0C';
+const OVERLAY_DARK = '#000000';
 
 export function ScanScreen({ navigation }: Props) {
   const t = useT();
@@ -297,7 +297,7 @@ const styles = themedStyles(() => StyleSheet.create({
     fontWeight: '600',
   },
   permissionSubtitle: {
-    color: 'rgba(255,255,255,0.7)',
+    color: '#FFFFFF',
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 12,
@@ -321,7 +321,7 @@ const styles = themedStyles(() => StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(28,28,31,0.7)',
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -376,7 +376,7 @@ const styles = themedStyles(() => StyleSheet.create({
   hint: {
     color: OVERLAY_TEXT,
     fontSize: 14,
-    backgroundColor: 'rgba(28,28,31,0.7)',
+    backgroundColor: '#000000',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
@@ -403,7 +403,7 @@ const styles = themedStyles(() => StyleSheet.create({
     color: OVERLAY_TEXT,
     fontSize: 13,
     textAlign: 'center',
-    backgroundColor: 'rgba(28,28,31,0.7)',
+    backgroundColor: '#000000',
     paddingVertical: 8,
     borderRadius: 10,
   },
@@ -456,7 +456,6 @@ const styles = themedStyles(() => StyleSheet.create({
   thumbnailImage: {
     width: '100%',
     height: '100%',
-    opacity: 0.85,
   },
   countBadge: {
     position: 'absolute',
@@ -489,7 +488,7 @@ const styles = themedStyles(() => StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(10,10,12,0.85)',
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,

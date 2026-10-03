@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import { colors } from '../../theme/colors';
 
 type Props = {
@@ -7,12 +7,10 @@ type Props = {
   width?: number;
   height?: number;
   color?: string;
-  showArea?: boolean;
 };
 
-// Плавный линейный мини-график (тренд расходов). Кубическое сглаживание,
-// опциональная заливка под линией.
-export function Sparkline({ data, width = 300, height = 80, color = colors.accent, showArea = true }: Props) {
+// Плавный линейный мини-график без точек и подсветки.
+export function Sparkline({ data, width = 300, height = 80, color = colors.accent }: Props) {
   if (data.length < 2) {
     return <View style={{ width, height }} />;
   }
@@ -35,17 +33,8 @@ export function Sparkline({ data, width = 300, height = 80, color = colors.accen
     const cx = (prev.x + curr.x) / 2;
     linePath += ` C ${cx} ${prev.y}, ${cx} ${curr.y}, ${curr.x} ${curr.y}`;
   }
-  const areaPath = `${linePath} L ${points[points.length - 1].x} ${height} L ${points[0].x} ${height} Z`;
-
   return (
     <Svg width={width} height={height}>
-      <Defs>
-        <LinearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={color} stopOpacity={0.25} />
-          <Stop offset="1" stopColor={color} stopOpacity={0} />
-        </LinearGradient>
-      </Defs>
-      {showArea && <Path d={areaPath} fill="url(#sparkFill)" />}
       <Path d={linePath} stroke={color} strokeWidth={2.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );

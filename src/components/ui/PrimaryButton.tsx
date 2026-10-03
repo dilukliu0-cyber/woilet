@@ -59,7 +59,8 @@ const styles = themedStyles(() => StyleSheet.create({
     backgroundColor: 'transparent',
   },
   disabled: {
-    opacity: 0.5,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   primaryLabel: {
     color: colors.background,

@@ -10,9 +10,9 @@ type Props = {
   height?: number;
 };
 
-const PAPER_BG = '#FBF8EF';
-const LINE = '#DDD4BC';
-const INK = '#4A4530';
+const PAPER_BG = '#FFFFFF';
+const LINE = '#000000';
+const INK = '#000000';
 
 const ITEM_ROWS = [
   { item: 0.4, price: 0.18 },
@@ -60,13 +60,12 @@ const styles = themedStyles(() => StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
+    borderColor: '#000000',
   },
   headerLine: {
     width: '58%',
     alignSelf: 'center',
     backgroundColor: INK,
-    opacity: 0.55,
   },
   row: {
     flexDirection: 'row',
@@ -83,6 +82,5 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   totalLine: {
     backgroundColor: INK,
-    opacity: 0.75,
   },
 }));

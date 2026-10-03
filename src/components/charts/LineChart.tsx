@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
 import { View } from 'react-native';
-import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop, Text as SvgText } from 'react-native-svg';
+import Svg, { Line, Path, Text as SvgText } from 'react-native-svg';
 import { colors } from '../../theme/colors';
 import { niceScale, shortAmount } from './chartScale';
 
@@ -15,7 +15,7 @@ type Props = {
 // Ширина viewBox — реальный размер задаётся width="100%", SVG масштабируется.
 const VW = 340;
 
-// Динамика расходов: сглаженная линия с точками, заливкой и осями (диаграмма №3).
+// Динамика расходов: сглаженная линия с заливкой и осями (диаграмма №3).
 export function LineChart({ data, labels, height = 190, color = colors.accent }: Props) {
   if (data.length < 2) {
     return <View style={{ height }} />;
@@ -42,10 +42,6 @@ export function LineChart({ data, labels, height = 190, color = colors.accent }:
     const mx = (p.x + c.x) / 2;
     line += ` C ${mx} ${p.y}, ${mx} ${c.y}, ${c.x} ${c.y}`;
   }
-  const baseY = padT + plotH;
-  const area = `${line} L ${pts[pts.length - 1].x} ${baseY} L ${pts[0].x} ${baseY} Z`;
-
-  const showDots = data.length <= 18;
   const labelCount = Math.min(5, data.length);
   const xIdx =
     labelCount <= 1
@@ -54,13 +50,6 @@ export function LineChart({ data, labels, height = 190, color = colors.accent }:
 
   return (
     <Svg width="100%" height={height} viewBox={`0 0 ${VW} ${height}`}>
-      <Defs>
-        <LinearGradient id="lineChartFill" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={color} stopOpacity={0.28} />
-          <Stop offset="1" stopColor={color} stopOpacity={0} />
-        </LinearGradient>
-      </Defs>
-
       {ticks.map((t, i) => {
         const y = padT + (1 - t / niceMax) * plotH;
         return (
@@ -81,7 +70,6 @@ export function LineChart({ data, labels, height = 190, color = colors.accent }:
         );
       })}
 
-      <Path d={area} fill="url(#lineChartFill)" />
       <Path
         d={line}
         stroke={color}
@@ -90,11 +78,6 @@ export function LineChart({ data, labels, height = 190, color = colors.accent }:
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-
-      {showDots &&
-        pts.map((p, i) => (
-          <Circle key={`d${i}`} cx={p.x} cy={p.y} r={3} fill={colors.surface} stroke={color} strokeWidth={2} />
-        ))}
 
       {xIdx.map((idx, i) => (
         <SvgText

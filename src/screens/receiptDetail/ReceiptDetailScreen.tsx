@@ -414,7 +414,7 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   viewerBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.92)',
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -584,7 +584,7 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: '#000000',
     justifyContent: 'flex-end',
   },
   sheet: {

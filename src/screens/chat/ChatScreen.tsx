@@ -1,5 +1,5 @@
-import { useFocusEffect } from '@react-navigation/native';
-import { Paperclip, Receipt as ReceiptIcon, Send, Sparkles, X } from 'lucide-react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { ArrowLeft, Paperclip, Receipt as ReceiptIcon, Send, Sparkles, X } from 'lucide-react-native';
 import { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -37,6 +37,7 @@ function receiptLabel(r: ReceiptRecord, locale: keyof typeof dictionaries): stri
 
 export function ChatScreen() {
   const t = useT();
+  const navigation = useNavigation();
   const locale = useLocaleStore((state) => state.locale);
   const userId = useAuthStore((state) => state.session?.user.id);
   const messages = useChatStore((state) => state.messages);
@@ -117,6 +118,9 @@ export function ChatScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.header}>
+        <Pressable style={styles.backButton} onPress={() => navigation.goBack()} hitSlop={8}>
+          <ArrowLeft color={colors.textPrimary} size={22} />
+        </Pressable>
         <View style={styles.iconWrap}>
           <Sparkles color={colors.accent} size={20} />
         </View>
@@ -235,6 +239,13 @@ const styles = themedStyles(() => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: -8,
   },
   header: {
     flexDirection: 'row',

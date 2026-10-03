@@ -1,8 +1,7 @@
-import { RefreshCw } from 'lucide-react-native';
+import { ChevronRight, ReceiptText, RefreshCw } from 'lucide-react-native';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useT } from '../../i18n/useT';
 import type { TranslationKey } from '../../i18n/translations';
-import { MiniReceiptThumb } from '../receipt/MiniReceiptThumb';
 import { colors } from '../../theme/colors';
 import type { ReceiptRecord, ReceiptStatus } from '../../types/receiptRecord';
 import { themedStyles } from '../../theme/themedStyles';
@@ -12,13 +11,6 @@ const STATUS_LABEL_KEY: Record<ReceiptStatus, TranslationKey> = {
   recognized: 'receipt_status_recognized',
   needs_review: 'receipt_status_needs_review',
   error: 'receipt_status_error',
-};
-
-const STATUS_COLOR: Record<ReceiptStatus, string> = {
-  processing: colors.textSecondary,
-  recognized: colors.success,
-  needs_review: colors.warning,
-  error: colors.error,
 };
 
 // Если обработка идёт дольше этого — считаем чек зависшим (например,
@@ -48,11 +40,15 @@ export function ReceiptListItem({
   onRescan,
 }: Props) {
   const t = useT();
+  const meta = [receipt.purchase_time?.slice(0, 5), ownerName].filter(Boolean).join(' · ');
+  const needsRescan = receipt.status === 'error' ||
+    (receipt.status === 'processing' &&
+      Date.now() - new Date(receipt.created_at).getTime() > STUCK_PROCESSING_MS);
 
   return (
     <Pressable style={[styles.card, style]} onPress={onPress}>
       <View style={styles.thumbnailWrap}>
-        <MiniReceiptThumb width={48} height={60} />
+        <ReceiptText color={colors.textPrimary} size={20} strokeWidth={1.8} />
         {ownerAvatarUrl && <Image source={{ uri: ownerAvatarUrl }} style={styles.ownerAvatar} />}
         {!ownerAvatarUrl && ownerName && (
           <View style={styles.ownerAvatarFallback}>
@@ -61,28 +57,23 @@ export function ReceiptListItem({
         )}
       </View>
       <View style={styles.cardInfo}>
-        <Text style={styles.storeName}>{receipt.store_name || t('receipt_store_unknown')}</Text>
-        <Text style={styles.dateTime}>
-          {[receipt.purchase_date, receipt.purchase_time].filter(Boolean).join(' ')}
-          {ownerName ? ` · ${ownerName}` : ''}
-        </Text>
+        <Text style={styles.storeName} numberOfLines={1}>{receipt.store_name || t('receipt_store_unknown')}</Text>
+        {!!meta && <Text style={styles.dateTime} numberOfLines={1}>{meta}</Text>}
+        {receipt.status !== 'recognized' && !needsRescan && (
+          <Text style={styles.status}>{t(STATUS_LABEL_KEY[receipt.status])}</Text>
+        )}
       </View>
       <View style={styles.cardRight}>
-        <Text style={styles.amount}>
+        <Text style={styles.amount} numberOfLines={1}>
           {(receipt.total_amount ?? 0).toFixed(2)} {receipt.currency}
         </Text>
-        {(receipt.status === 'error' ||
-          (receipt.status === 'processing' &&
-            Date.now() - new Date(receipt.created_at).getTime() > STUCK_PROCESSING_MS)) &&
-        onRescan ? (
+        {needsRescan && onRescan ? (
           <Pressable style={styles.rescanButton} onPress={onRescan} hitSlop={6}>
-            <RefreshCw color={colors.error} size={12} />
+            <RefreshCw color={colors.textPrimary} size={12} />
             <Text style={styles.rescanText}>{t('expenses_retry_read')}</Text>
           </Pressable>
         ) : (
-          <Text style={[styles.status, { color: STATUS_COLOR[receipt.status] }]}>
-            {t(STATUS_LABEL_KEY[receipt.status])}
-          </Text>
+          <ChevronRight color={colors.textSecondary} size={16} style={styles.chevron} />
         )}
       </View>
     </Pressable>
@@ -94,16 +85,21 @@ const styles = themedStyles(() => StyleSheet.create({
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 11,
     backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   thumbnailWrap: {
-    width: 48,
-    height: 60,
+    width: 40,
+    height: 40,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   ownerAvatar: {
     position: 'absolute',
@@ -136,28 +132,34 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   cardInfo: {
     flex: 1,
+    minWidth: 0,
   },
   storeName: {
     color: colors.textPrimary,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
   },
   dateTime: {
     color: colors.textSecondary,
     fontSize: 12,
-    marginTop: 4,
+    marginTop: 3,
   },
   cardRight: {
     alignItems: 'flex-end',
+    maxWidth: '43%',
   },
   amount: {
     color: colors.textPrimary,
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
   },
   status: {
     fontSize: 12,
-    marginTop: 4,
+    marginTop: 3,
+    color: colors.textSecondary,
+  },
+  chevron: {
+    marginTop: 3,
   },
   rescanButton: {
     flexDirection: 'row',
@@ -167,10 +169,11 @@ const styles = themedStyles(() => StyleSheet.create({
     paddingVertical: 3,
     paddingHorizontal: 8,
     borderRadius: 20,
-    backgroundColor: 'rgba(239,68,68,0.12)',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   rescanText: {
-    color: colors.error,
+    color: colors.textPrimary,
     fontSize: 11,
     fontWeight: '600',
   },

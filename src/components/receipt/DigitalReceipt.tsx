@@ -23,10 +23,10 @@ type Props = {
 };
 
 const MONO = Platform.OS === 'ios' ? 'Courier' : 'monospace';
-const PAPER_BG = '#FBF8EF';
-const INK = '#2E2A22';
-const INK_MUTED = '#8C8570';
-const DASH = '#CFC7AE';
+const PAPER_BG = '#FFFFFF';
+const INK = '#000000';
+const INK_MUTED = '#000000';
+const DASH = '#000000';
 
 // Стабильный псевдослучайный узор для штрихкода — зависит от содержимого
 // чека, а не от Math.random(), чтобы не мигал при перерендерах.
@@ -100,7 +100,7 @@ const styles = themedStyles(() => StyleSheet.create({
     borderRadius: 10,
     padding: 20,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
+    borderColor: '#000000',
   },
   store: {
     color: INK,
@@ -170,6 +170,5 @@ const styles = themedStyles(() => StyleSheet.create({
   bar: {
     height: '100%',
     backgroundColor: INK,
-    opacity: 0.75,
   },
 }));

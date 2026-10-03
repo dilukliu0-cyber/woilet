@@ -1,6 +1,5 @@
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AnimatedProgressBar } from '../../components/ui/AnimatedProgressBar';
@@ -17,8 +16,6 @@ import { useLimitsStore } from '../../store/limitsStore';
 import { useLocaleStore } from '../../store/localeStore';
 import { colors, getCategoryColor } from '../../theme/colors';
 import { themedStyles } from '../../theme/themedStyles';
-import { CATEGORY_ICON_BY_NAME } from '../../utils/categoryIconMap';
-import { getCategoryIcon } from '../../utils/categoryIcons';
 import { preferredDisplayName, productKey } from '../../utils/productKey';
 import { formatTotals } from '../../utils/measure';
 
@@ -47,7 +44,6 @@ export function CategoryDetailScreen({ route, navigation }: Props) {
   const fetchLimits = useLimitsStore((state) => state.fetch);
 
   const [rows, setRows] = useState<ProductRow[]>([]);
-  const [totalAll, setTotalAll] = useState(0);
   const [currency, setCurrency] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -77,7 +73,6 @@ export function CategoryDetailScreen({ route, navigation }: Props) {
           (r) => r.receipt && isSameMonth(r.receipt.purchase_date, r.receipt.created_at, now),
         );
         setRows(monthRows);
-        setTotalAll(breakdown.entries.reduce((sum, e) => sum + e.total, 0));
         setCurrency(breakdown.currency);
         setLoading(false);
       }
@@ -87,7 +82,6 @@ export function CategoryDetailScreen({ route, navigation }: Props) {
   );
 
   const categoryTotal = rows.reduce((sum, r) => sum + r.price * (r.receipt?.exchange_rate ?? 1), 0);
-  const percentOfAll = totalAll > 0 ? (categoryTotal / totalAll) * 100 : 0;
   const limit = limits.find((l) => l.category_name === categoryName);
   const limitPercent = limit && limit.amount > 0 ? (categoryTotal / limit.amount) * 100 : 0;
 
@@ -131,7 +125,6 @@ export function CategoryDetailScreen({ route, navigation }: Props) {
   }
 
   const color = getCategoryColor(categoryName);
-  const DecorIcon = getCategoryIcon(CATEGORY_ICON_BY_NAME[categoryName] ?? 'ellipsis');
 
   return (
     <View style={styles.container}>
@@ -140,19 +133,9 @@ export function CategoryDetailScreen({ route, navigation }: Props) {
       <ScrollView contentContainerStyle={styles.content}>
         <FadeInView index={0}>
           <View style={styles.summaryCard}>
-            <LinearGradient
-              colors={[`${color}3D`, `${color}00`]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFillObject}
-            />
-            <DecorIcon color={color} size={132} strokeWidth={1.3} style={styles.summaryDecorIcon} />
             <CategoryIcon category={categoryName} size={48} />
             <Text style={styles.total}>
               {categoryTotal.toFixed(0)} {currency}
-            </Text>
-            <Text style={styles.percentOfAll}>
-              {t('category_detail_percent_of_all', { percent: percentOfAll.toFixed(0) })}
             </Text>
           </View>
         </FadeInView>
@@ -229,21 +212,10 @@ const styles = themedStyles(() => StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
   },
-  summaryDecorIcon: {
-    position: 'absolute',
-    top: -30,
-    right: -28,
-    opacity: 0.22,
-    transform: [{ rotate: '-14deg' }],
-  },
   total: {
     color: colors.textPrimary,
     fontSize: 28,
     fontWeight: '700',
-  },
-  percentOfAll: {
-    color: colors.textSecondary,
-    fontSize: 13,
   },
   limitCard: {
     backgroundColor: colors.surface,

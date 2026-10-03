@@ -26,6 +26,34 @@ type Target = {
   oldest_text: string | null;
 };
 
+// Те же правила, что в _shared/entitlement.ts: tier pro, живой статус и не
+// истёкший срок. Одним запросом на всю пачку, а не по пользователю.
+const ACTIVE_STATUSES = ['active', 'in_trial', 'in_grace'];
+
+async function fetchProUserIds(supabaseUrl: string, serviceRoleKey: string, userIds: string[]): Promise<Set<string>> {
+  const pro = new Set<string>();
+  const unique = [...new Set(userIds)];
+  for (let i = 0; i < unique.length; i += BATCH_SIZE) {
+    const ids = unique.slice(i, i + BATCH_SIZE).join(',');
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/subscriptions?select=user_id,tier,status,expires_at&user_id=in.(${ids})`,
+      { headers: { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` } },
+    );
+    if (!response.ok) {
+      // Не смогли проверить — никому не шлём: лишний пуш бесплатному хуже,
+      // чем пропущенное напоминание, которое уйдёт через 12 часов.
+      console.error('shopping-reminders: subscriptions', response.status, await response.text());
+      return new Set();
+    }
+    const rows = (await response.json()) as { user_id: string; tier: string; status: string; expires_at: string | null }[];
+    for (const row of rows) {
+      const notExpired = !row.expires_at || new Date(row.expires_at).getTime() > Date.now();
+      if (row.tier === 'pro' && ACTIVE_STATUSES.includes(row.status) && notExpired) pro.add(row.user_id);
+    }
+  }
+  return pro;
+}
+
 function buildBody(target: Target): string {
   const count = Number(target.pending_count) || 0;
   const item = (target.oldest_text ?? '').trim();
@@ -74,9 +102,23 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'Не удалось получить список' }, 500);
     }
 
-    const targets = (await rpcResponse.json()) as Target[];
-    if (!Array.isArray(targets) || targets.length === 0) {
+    const candidates = (await rpcResponse.json()) as Target[];
+    if (!Array.isArray(candidates) || candidates.length === 0) {
       return jsonResponse({ sent: 0 });
+    }
+
+    // Список покупок — функция Pro: бесплатным он в приложении не показывается.
+    // Без этой проверки им продолжали бы приходить напоминания о списке,
+    // который они больше не видят (пункты, добавленные до перехода на Pro-only,
+    // остаются в базе).
+    const proUserIds = await fetchProUserIds(
+      supabaseUrl,
+      serviceRoleKey,
+      candidates.map((target) => target.user_id),
+    );
+    const targets = candidates.filter((target) => proUserIds.has(target.user_id));
+    if (targets.length === 0) {
+      return jsonResponse({ sent: 0, candidates: candidates.length });
     }
 
     const messages = targets.map((target) => ({
@@ -130,7 +172,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    return jsonResponse({ sent: delivered.length, candidates: targets.length });
+    return jsonResponse({ sent: delivered.length, candidates: candidates.length, pro: targets.length });
   } catch (error) {
     console.error('shopping-reminders error', error);
     return jsonResponse({ error: 'Внутренняя ошибка сервера' }, 500);

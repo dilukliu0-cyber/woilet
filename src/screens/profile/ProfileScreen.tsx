@@ -10,7 +10,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   View,
@@ -34,9 +33,6 @@ import { CURRENCIES, currencyName } from '../../utils/currencies';
 import { colors } from '../../theme/colors';
 import { themedStyles } from '../../theme/themedStyles';
 
-// Один экран вместо двух: раньше «Профиль» (ник/аватарка/ID) и «Настройки»
-// (тема/язык/валюта/...) жили отдельно — теперь всё здесь, попадают сюда
-// через единственный пункт «Настройка профиля» в рулетке аватарки.
 export function ProfileScreen() {
   const t = useT();
   const intlLocale = INTL_LOCALE[useLocaleStore((state) => state.locale)];
@@ -58,8 +54,6 @@ export function ProfileScreen() {
   const [currencyQuery, setCurrencyQuery] = useState('');
   const [currencyOpen, setCurrencyOpen] = useState(false);
 
-  // Профиль лежит в корневом стеке (не во вкладках), поэтому родителя может
-  // не быть — тогда навигируем через собственный navigation.
   const rootNavigation = () => navigation.getParent<NativeStackNavigationProp<AppStackParamList>>() ?? navigation;
   const userId = session?.user.id ?? '';
   const nickname = settings?.nickname?.trim() || t('profile_no_name');
@@ -151,34 +145,31 @@ export function ProfileScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <Pressable style={styles.avatarWrap} onPress={handlePickAvatar} disabled={uploadingAvatar}>
-            {avatar ? (
-              <Image source={{ uri: avatar }} style={styles.avatarImage} />
-            ) : (
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{nickname[0]?.toUpperCase() ?? '?'}</Text>
+        <View style={styles.accountCard}>
+          <View style={styles.identityRow}>
+            <Pressable style={styles.avatarWrap} onPress={handlePickAvatar} disabled={uploadingAvatar}>
+              {avatar ? (
+                <Image source={{ uri: avatar }} style={styles.avatarImage} />
+              ) : (
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>{nickname[0]?.toUpperCase() ?? '?'}</Text>
+                </View>
+              )}
+              <View style={styles.avatarBadge}>
+                <Camera color={colors.background} size={13} />
               </View>
-            )}
-            <View style={styles.avatarBadge}>
-              <Camera color={colors.background} size={13} />
-            </View>
-          </Pressable>
-          <Pressable style={styles.nicknameRow} onPress={openNicknameEditor}>
-            <Text style={styles.nickname}>{nickname}</Text>
-            <Pencil color={colors.textTertiary} size={14} />
+            </Pressable>
+            <Pressable style={styles.nicknameRow} onPress={openNicknameEditor}>
+              <Text style={styles.nickname}>{nickname}</Text>
+              <Pencil color={colors.textPrimary} size={15} />
+            </Pressable>
+          </View>
+          <Pressable style={styles.idRow} onPress={copyId}>
+            <Text style={styles.idLabel}>{t('profile_id_label')}</Text>
+            <Text style={styles.idValue} numberOfLines={1} ellipsizeMode="middle">{userId}</Text>
           </Pressable>
         </View>
 
-        {/* Категории и Семейный аккаунт уже доступны из рулетки аватарки —
-            здесь дублировать их не нужно, остаётся только ID. */}
-        <Pressable style={styles.idRow} onPress={copyId}>
-          <Text style={styles.idLabel}>{t('profile_id_label')}</Text>
-          <Text style={styles.idValue}>{userId}</Text>
-        </Pressable>
-
-        {/* Подписка: на бесплатном тарифе показываем остаток сканов, на Pro —
-            статус. Единственная точка входа в экран подписки. */}
         <Pressable style={styles.proRow} onPress={() => rootNavigation()?.navigate('Subscription')}>
           <View style={styles.proIcon}>
             <BadgeCheck color={colors.accent} size={20} />
@@ -199,36 +190,41 @@ export function ProfileScreen() {
           <ChevronRight color={colors.textSecondary} size={18} />
         </Pressable>
 
-        {/* Оформление: тема + язык интерфейса. */}
         <View style={styles.groupCard}>
           <Text style={styles.groupTitle}>{t('profile_appearance')}</Text>
           <Text style={styles.subLabel}>{t('profile_theme')}</Text>
-          <View style={styles.list}>
-            <SelectableRow
-              label={t('profile_theme_dark')}
-              selected={(settings?.theme ?? 'dark') === 'dark'}
-              onPress={() => updateSettings({ theme: 'dark' })}
-            />
-            <SelectableRow
-              label={t('profile_theme_light')}
-              selected={settings?.theme === 'light'}
-              onPress={() => updateSettings({ theme: 'light' })}
-            />
+          <View style={styles.segmented}>
+            {(['light', 'dark'] as const).map((theme) => {
+              const selected = (settings?.theme ?? 'dark') === theme;
+              return (
+                <Pressable
+                  key={theme}
+                  style={[styles.segment, selected && styles.segmentSelected]}
+                  onPress={() => updateSettings({ theme })}
+                >
+                  <Text style={[styles.segmentText, selected && styles.segmentTextSelected]}>
+                    {t(theme === 'light' ? 'profile_theme_light' : 'profile_theme_dark')}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
           <Text style={styles.subLabel}>{t('profile_language')}</Text>
-          <View style={styles.list}>
+          <View style={styles.segmented}>
             {LOCALES.map((lang) => (
-              <SelectableRow
+              <Pressable
                 key={lang.code}
-                label={lang.label}
-                selected={settings?.language === lang.code}
+                style={[styles.segment, settings?.language === lang.code && styles.segmentSelected]}
                 onPress={() => updateSettings({ language: lang.code })}
-              />
+              >
+                <Text style={[styles.segmentText, settings?.language === lang.code && styles.segmentTextSelected]}>
+                  {lang.label}
+                </Text>
+              </Pressable>
             ))}
           </View>
         </View>
 
-        {/* Деньги: валюта + перевод названий товаров — всё, что касается чеков. */}
         <View style={styles.groupCard}>
           <Text style={styles.groupTitle}>{t('profile_money_items')}</Text>
           <Text style={styles.subLabel}>{t('profile_main_currency')}</Text>
@@ -271,102 +267,66 @@ export function ProfileScreen() {
           )}
           <Text style={styles.hint}>{t('profile_currency_hint')}</Text>
 
-          <View style={styles.toggleRow}>
+          <Pressable
+            style={styles.toggleRow}
+            onPress={() => updateSettings({ translate_items: !(settings?.translate_items ?? false) })}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: settings?.translate_items ?? false }}
+            aria-checked={settings?.translate_items ?? false}
+            accessibilityLabel={t('profile_translate_items')}
+          >
             <View style={styles.toggleTextWrap}>
               <Text style={styles.toggleLabel}>{t('profile_translate_items')}</Text>
               <Text style={styles.toggleHint}>{t('profile_translate_items_hint')}</Text>
             </View>
-            <Switch
-              value={settings?.translate_items ?? false}
-              onValueChange={(value) => updateSettings({ translate_items: value })}
-              trackColor={{ false: colors.surfaceElevated, true: colors.accent }}
-              thumbColor={colors.textPrimary}
-            />
-          </View>
+            <View style={[styles.toggleTrack, settings?.translate_items && styles.toggleTrackActive]}>
+              <View style={[styles.toggleThumb, settings?.translate_items && styles.toggleThumbActive]} />
+            </View>
+          </Pressable>
         </View>
 
-        {/* Диаграммы: вид на обоих экранах вместе. */}
-        <View style={styles.groupCard}>
-          <Text style={styles.groupTitle}>{t('profile_charts')}</Text>
-          <Text style={styles.subLabel}>{t('profile_charts_expenses')}</Text>
-          <View style={styles.list}>
-            <SelectableRow
-              label={t('profile_chart_donut')}
-              selected={(settings?.chart_style ?? 'donut') === 'donut'}
-              onPress={() => updateSettings({ chart_style: 'donut' })}
-            />
-            <SelectableRow
-              label={t('profile_chart_bars')}
-              selected={settings?.chart_style === 'bars'}
-              onPress={() => updateSettings({ chart_style: 'bars' })}
-            />
-          </View>
-          <Text style={styles.subLabel}>{t('profile_charts_home')}</Text>
-          <View style={styles.list}>
-            <SelectableRow
-              label={t('profile_chart_line')}
-              selected={(settings?.home_chart ?? 'line') === 'line'}
-              onPress={() => updateSettings({ home_chart: 'line' })}
-            />
-            <SelectableRow
-              label={t('profile_chart_daily')}
-              selected={settings?.home_chart === 'daily'}
-              onPress={() => updateSettings({ home_chart: 'daily' })}
-            />
-          </View>
-        </View>
-
-        {/* Уведомления и ИИ + стартовый гайд — «about the app» блок. */}
         <View style={styles.groupCard}>
           <Text style={styles.groupTitle}>{t('profile_notifications_ai')}</Text>
-          <View style={styles.toggleRow}>
+          <Pressable
+            style={styles.toggleRow}
+            onPress={() => updateSettings({ notifications_enabled: !(settings?.notifications_enabled ?? true) })}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: settings?.notifications_enabled ?? true }}
+            aria-checked={settings?.notifications_enabled ?? true}
+            accessibilityLabel={t('profile_notifications')}
+          >
             <Text style={styles.toggleLabel}>{t('profile_notifications')}</Text>
-            <Switch
-              value={settings?.notifications_enabled ?? true}
-              onValueChange={(value) => updateSettings({ notifications_enabled: value })}
-              trackColor={{ false: colors.surfaceElevated, true: colors.accent }}
-              thumbColor={colors.textPrimary}
-            />
-          </View>
-          <View style={styles.toggleRow}>
-            <Text style={styles.toggleLabel}>{t('profile_shopping_reminders')}</Text>
-            <Switch
-              value={settings?.shopping_reminders_enabled ?? true}
-              onValueChange={(value) => updateSettings({ shopping_reminders_enabled: value })}
-              trackColor={{ false: colors.surfaceElevated, true: colors.accent }}
-              thumbColor={colors.textPrimary}
-            />
-          </View>
-          <View style={styles.toggleRow}>
-            <Text style={styles.toggleLabel}>{t('profile_ai_tips')}</Text>
-            <Switch
-              value={settings?.ai_tips_enabled ?? true}
-              onValueChange={(value) => updateSettings({ ai_tips_enabled: value })}
-              trackColor={{ false: colors.surfaceElevated, true: colors.accent }}
-              thumbColor={colors.textPrimary}
-            />
-          </View>
+            <View style={[styles.toggleTrack, (settings?.notifications_enabled ?? true) && styles.toggleTrackActive]}>
+              <View style={[styles.toggleThumb, (settings?.notifications_enabled ?? true) && styles.toggleThumbActive]} />
+            </View>
+          </Pressable>
           <Pressable style={styles.currencyRow} onPress={() => sendTestNotification()}>
             <Text style={styles.currencyValue}>{t('profile_test_notification')}</Text>
             <Text style={styles.currencyChange}>{t('profile_send')}</Text>
           </Pressable>
+        </View>
+
+        <View style={styles.groupCard}>
+          <Text style={styles.groupTitle}>{t('profile_help')}</Text>
           <Pressable style={styles.currencyRow} onPress={() => rootNavigation()?.navigate('IntroPreview')}>
             <Text style={styles.currencyValue}>{t('profile_intro_guide')}</Text>
             <Text style={styles.currencyChange}>{t('profile_view')}</Text>
           </Pressable>
         </View>
 
-        <Pressable style={styles.logoutRow} onPress={signOut}>
-          <LogOut color={colors.error} size={18} />
-          <Text style={styles.logoutText}>{t('profile_logout')}</Text>
-        </Pressable>
-
-        <PrimaryButton
-          label={t('profile_delete_account')}
-          variant="secondary"
-          onPress={handleDeleteAccount}
-          loading={deleting}
-        />
+        <View style={styles.groupCard}>
+          <Text style={styles.groupTitle}>{t('profile_account')}</Text>
+          <Pressable style={styles.logoutRow} onPress={signOut}>
+            <LogOut color={colors.textPrimary} size={18} />
+            <Text style={styles.logoutText}>{t('profile_logout')}</Text>
+          </Pressable>
+          <PrimaryButton
+            label={t('profile_delete_account')}
+            variant="secondary"
+            onPress={handleDeleteAccount}
+            loading={deleting}
+          />
+        </View>
       </ScrollView>
 
       <Modal
@@ -418,29 +378,36 @@ const styles = themedStyles(() => StyleSheet.create({
   content: {
     paddingHorizontal: 20,
     paddingBottom: 48,
-    gap: 12,
+    gap: 16,
   },
-  header: {
+  accountCard: {
+    borderWidth: 2,
+    borderColor: colors.cardBorder,
+    borderRadius: 20,
+    padding: 18,
+    gap: 16,
+  },
+  identityRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 8,
+    gap: 16,
   },
   avatarWrap: {
-    width: 76,
-    height: 76,
+    width: 64,
+    height: 64,
   },
   avatar: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: colors.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarImage: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: colors.surfaceElevated,
   },
   avatarBadge: {
@@ -465,47 +432,72 @@ const styles = themedStyles(() => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flex: 1,
   },
   nickname: {
     color: colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
+    flexShrink: 1,
   },
-  // Карточка-«полка»: группирует несколько связанных разделов вместо
-  // плоского списка отдельных заголовков — так настройки читаются как
-  // несколько понятных блоков, а не разбросанный список.
   groupCard: {
-    // Фон карточки = фон страницы (не surface) — иначе строки внутри
-    // (тоже surface) сливаются с рамкой и группа перестаёт читаться.
     backgroundColor: colors.background,
-    borderRadius: 18,
-    borderWidth: 1,
+    borderRadius: 20,
+    borderWidth: 2,
     borderColor: colors.cardBorder,
-    padding: 14,
-    gap: 10,
+    padding: 18,
+    gap: 14,
   },
   groupTitle: {
     color: colors.textPrimary,
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: '700',
   },
   subLabel: {
     color: colors.textSecondary,
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
-    marginTop: 2,
+    marginTop: 4,
+  },
+  segmented: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  segment: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 44,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  segmentSelected: {
+    backgroundColor: colors.accent,
+  },
+  segmentText: {
+    color: colors.textPrimary,
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  segmentTextSelected: {
+    color: colors.background,
   },
   list: {
     gap: 8,
   },
   idRow: {
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 4,
+    gap: 5,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: 14,
   },
   idLabel: {
-    color: colors.textTertiary,
-    fontSize: 11,
+    color: colors.textSecondary,
+    fontSize: 12,
   },
   idValue: {
     color: colors.textSecondary,
@@ -517,10 +509,10 @@ const styles = themedStyles(() => StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: colors.accentSoft,
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: colors.cardBorder,
   },
   proIcon: {
     width: 38,
@@ -556,15 +548,18 @@ const styles = themedStyles(() => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.surface,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    borderRadius: 12,
+    paddingHorizontal: 0,
+    paddingVertical: 10,
+    gap: 12,
   },
   currencyValue: {
     color: colors.textPrimary,
     fontSize: 14,
     fontWeight: '500',
     flex: 1,
+    flexShrink: 1,
+    lineHeight: 20,
   },
   currencyChange: {
     color: colors.accent,
@@ -581,9 +576,9 @@ const styles = themedStyles(() => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.surface,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    borderRadius: 12,
+    paddingHorizontal: 0,
+    paddingVertical: 8,
   },
   toggleLabel: {
     color: colors.textPrimary,
@@ -600,21 +595,44 @@ const styles = themedStyles(() => StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
   },
+  toggleTrack: {
+    width: 46,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 2,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  toggleTrackActive: {
+    backgroundColor: colors.accent,
+  },
+  toggleThumb: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.textPrimary,
+  },
+  toggleThumbActive: {
+    backgroundColor: colors.background,
+    alignSelf: 'flex-end',
+  },
   logoutRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     gap: 10,
     paddingVertical: 12,
   },
   logoutText: {
-    color: colors.error,
+    color: colors.textPrimary,
     fontSize: 15,
     fontWeight: '600',
   },
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: '#000000',
     justifyContent: 'flex-end',
   },
   sheet: {

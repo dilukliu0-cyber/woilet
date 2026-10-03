@@ -1,0 +1,277 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1370" height="2020" viewBox="0 0 1370 2020"><title>Woilet — mobile design</title><rect width="1370" height="2020" fill="#fff"/>
+<text x="50" y="68" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="800" text-anchor="start" fill="#000">WOILET</text>
+<text x="50" y="98" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="400" text-anchor="start" fill="#000">Мобильная дизайн-система · чёрный / белый · демонстрационные данные</text>
+<line x1="50" y1="119" x2="1320" y2="119" stroke="#000" stroke-width="2"/>
+<text x="50" y="157" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="700" text-anchor="start" fill="#000">01  /  Обзор расходов</text>
+<g transform="translate(50 175)">
+<rect x="0" y="0" width="390" height="844" rx="34" fill="#fff" stroke="#000" stroke-width="2"/>
+<text x="27" y="33" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="start" fill="#000">9:41</text>
+<line x1="320" y1="26" x2="330" y2="26" stroke="#000" stroke-width="2"/>
+<line x1="336" y1="23" x2="336" y2="29" stroke="#000" stroke-width="2"/>
+<rect x="345" y="21" width="22" height="10" rx="3" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="24" y="91" font-family="Inter, Arial, sans-serif" font-size="27" font-weight="800" text-anchor="start" fill="#000">Expenses</text>
+<circle cx="344" cy="78" r="21" fill="#fff" stroke="#000" stroke-width="2"/>
+<text x="344" y="84" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800" text-anchor="middle" fill="#000">W</text>
+<rect x="20" y="124" width="350" height="485" rx="24" fill="#fff" stroke="#000" stroke-width="2"/>
+<rect x="40" y="143" width="34" height="34" rx="10" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="57" y="167" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700" text-anchor="middle" fill="#000">▣</text>
+<rect x="316" y="143" width="34" height="34" rx="10" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="333" y="167" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700" text-anchor="middle" fill="#000">▦</text>
+<text x="195" y="202" font-family="Inter, Arial, sans-serif" font-size="33" font-weight="800" text-anchor="middle" fill="#000">3 450 CZK</text>
+<text x="195" y="225" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#000">Всего за месяц</text>
+<text x="45" y="272" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="400" text-anchor="start" fill="#000">Одежда</text>
+<text x="345" y="272" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="600" text-anchor="end" fill="#000">1 239 CZK</text>
+<rect x="45" y="281" width="292" height="4" rx="0" fill="#000" stroke="#000" stroke-width="0"/>
+<text x="45" y="326" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="400" text-anchor="start" fill="#000">Продукты</text>
+<text x="345" y="326" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="600" text-anchor="end" fill="#000">1 210 CZK</text>
+<rect x="45" y="335" width="286" height="4" rx="0" fill="#000" stroke="#000" stroke-width="0"/>
+<text x="45" y="380" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="400" text-anchor="start" fill="#000">Дом</text>
+<text x="345" y="380" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="600" text-anchor="end" fill="#000">280 CZK</text>
+<rect x="45" y="389" width="70" height="4" rx="0" fill="#000" stroke="#000" stroke-width="0"/>
+<text x="45" y="434" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="400" text-anchor="start" fill="#000">Гигиена</text>
+<text x="345" y="434" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="600" text-anchor="end" fill="#000">280 CZK</text>
+<rect x="45" y="443" width="70" height="4" rx="0" fill="#000" stroke="#000" stroke-width="0"/>
+<text x="45" y="488" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="400" text-anchor="start" fill="#000">Напитки</text>
+<text x="345" y="488" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="600" text-anchor="end" fill="#000">265 CZK</text>
+<rect x="45" y="497" width="67" height="4" rx="0" fill="#000" stroke="#000" stroke-width="0"/>
+<line x1="43" y1="552" x2="347" y2="552" stroke="#000" stroke-width="1"/>
+<text x="47" y="582" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="600" text-anchor="start" fill="#000">◈   Лимиты и бюджет</text>
+<text x="345" y="582" font-family="Inter, Arial, sans-serif" font-size="25" font-weight="400" text-anchor="end" fill="#000">›</text>
+<text x="24" y="654" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" text-anchor="start" fill="#000">Чеки</text>
+<rect x="22" y="675" width="346" height="58" rx="18" fill="#fff" stroke="#000" stroke-width="2"/>
+<text x="42" y="710" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="700" text-anchor="start" fill="#000">Сентябрь 2026</text>
+<text x="346" y="710" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="600" text-anchor="end" fill="#000">3 259 CZK</text>
+<text x="26" y="764" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="start" fill="#000">24 сентября</text>
+<text x="350" y="764" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="end" fill="#000">209 CZK</text>
+<circle cx="339" cy="779" r="28" fill="#000" stroke="#000" stroke-width="0"/>
+<text x="339" y="790" font-family="Inter, Arial, sans-serif" font-size="31" font-weight="300" text-anchor="middle" fill="#fff">+</text>
+</g>
+<text x="490" y="157" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="700" text-anchor="start" fill="#000">02  /  Неделя</text>
+<g transform="translate(490 175)">
+<rect x="0" y="0" width="390" height="844" rx="34" fill="#fff" stroke="#000" stroke-width="2"/>
+<text x="27" y="33" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="start" fill="#000">9:41</text>
+<line x1="320" y1="26" x2="330" y2="26" stroke="#000" stroke-width="2"/>
+<line x1="336" y1="23" x2="336" y2="29" stroke="#000" stroke-width="2"/>
+<rect x="345" y="21" width="22" height="10" rx="3" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="24" y="91" font-family="Inter, Arial, sans-serif" font-size="27" font-weight="800" text-anchor="start" fill="#000">Expenses</text>
+<circle cx="344" cy="78" r="21" fill="#fff" stroke="#000" stroke-width="2"/>
+<text x="344" y="84" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800" text-anchor="middle" fill="#000">W</text>
+<rect x="20" y="124" width="350" height="485" rx="24" fill="#fff" stroke="#000" stroke-width="2"/>
+<rect x="40" y="143" width="34" height="34" rx="10" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="57" y="167" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700" text-anchor="middle" fill="#000">▣</text>
+<rect x="316" y="143" width="34" height="34" rx="10" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="333" y="167" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700" text-anchor="middle" fill="#000">▦</text>
+<text x="45" y="216" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="700" text-anchor="start" fill="#000">Расходы за неделю</text>
+<text x="343" y="216" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end" fill="#000">21–27 сен</text>
+<text x="45" y="274" font-family="Inter, Arial, sans-serif" font-size="38" font-weight="800" text-anchor="start" fill="#000">2 490 CZK</text>
+<line x1="46" y1="310" x2="325" y2="310" stroke="#000" stroke-width="1"/>
+<text x="337" y="314" font-family="Inter, Arial, sans-serif" font-size="10" font-weight="400" text-anchor="start" fill="#000">1000</text>
+<line x1="46" y1="355" x2="325" y2="355" stroke="#000" stroke-width="1"/>
+<text x="337" y="359" font-family="Inter, Arial, sans-serif" font-size="10" font-weight="400" text-anchor="start" fill="#000">750</text>
+<line x1="46" y1="400" x2="325" y2="400" stroke="#000" stroke-width="1"/>
+<text x="337" y="404" font-family="Inter, Arial, sans-serif" font-size="10" font-weight="400" text-anchor="start" fill="#000">500</text>
+<line x1="46" y1="445" x2="325" y2="445" stroke="#000" stroke-width="1"/>
+<text x="337" y="449" font-family="Inter, Arial, sans-serif" font-size="10" font-weight="400" text-anchor="start" fill="#000">250</text>
+<line x1="46" y1="490" x2="325" y2="490" stroke="#000" stroke-width="1"/>
+<text x="337" y="494" font-family="Inter, Arial, sans-serif" font-size="10" font-weight="400" text-anchor="start" fill="#000">0</text>
+<rect x="58" y="414" width="23" height="76" rx="9" fill="#000" stroke="#000" stroke-width="0"/>
+<text x="70" y="513" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#000">Пн</text>
+<text x="109" y="513" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#000">Вт</text>
+<rect x="136" y="350" width="23" height="140" rx="9" fill="#000" stroke="#000" stroke-width="0"/>
+<text x="148" y="513" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#000">Ср</text>
+<rect x="175" y="443" width="23" height="47" rx="9" fill="#000" stroke="#000" stroke-width="0"/>
+<text x="187" y="513" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#000">Чт</text>
+<rect x="214" y="465" width="23" height="25" rx="9" fill="#000" stroke="#000" stroke-width="0"/>
+<text x="226" y="513" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#000">Пт</text>
+<text x="265" y="513" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#000">Сб</text>
+<rect x="292" y="330" width="23" height="160" rx="9" fill="#000" stroke="#000" stroke-width="0"/>
+<text x="304" y="513" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#000">Вс</text>
+<line x1="43" y1="548" x2="347" y2="548" stroke="#000" stroke-width="1"/>
+<text x="47" y="581" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="600" text-anchor="start" fill="#000">◈   Лимиты и бюджет</text>
+<text x="345" y="581" font-family="Inter, Arial, sans-serif" font-size="25" font-weight="400" text-anchor="end" fill="#000">›</text>
+<text x="24" y="654" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" text-anchor="start" fill="#000">Чеки</text>
+<rect x="22" y="675" width="346" height="58" rx="18" fill="#fff" stroke="#000" stroke-width="2"/>
+<text x="42" y="710" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="700" text-anchor="start" fill="#000">Сентябрь 2026</text>
+<text x="346" y="710" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="600" text-anchor="end" fill="#000">3 259 CZK</text>
+<circle cx="339" cy="779" r="28" fill="#000" stroke="#000" stroke-width="0"/>
+<text x="339" y="790" font-family="Inter, Arial, sans-serif" font-size="31" font-weight="300" text-anchor="middle" fill="#fff">+</text>
+</g>
+<text x="930" y="157" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="700" text-anchor="start" fill="#000">03  /  Календарь</text>
+<g transform="translate(930 175)">
+<rect x="0" y="0" width="390" height="844" rx="34" fill="#fff" stroke="#000" stroke-width="2"/>
+<text x="27" y="33" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="start" fill="#000">9:41</text>
+<line x1="320" y1="26" x2="330" y2="26" stroke="#000" stroke-width="2"/>
+<line x1="336" y1="23" x2="336" y2="29" stroke="#000" stroke-width="2"/>
+<rect x="345" y="21" width="22" height="10" rx="3" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="24" y="91" font-family="Inter, Arial, sans-serif" font-size="27" font-weight="800" text-anchor="start" fill="#000">Expenses</text>
+<circle cx="344" cy="78" r="21" fill="#fff" stroke="#000" stroke-width="2"/>
+<text x="344" y="84" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800" text-anchor="middle" fill="#000">W</text>
+<rect x="20" y="124" width="350" height="485" rx="24" fill="#fff" stroke="#000" stroke-width="2"/>
+<rect x="40" y="143" width="34" height="34" rx="10" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="57" y="167" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700" text-anchor="middle" fill="#000">▣</text>
+<rect x="316" y="143" width="34" height="34" rx="10" fill="#000" stroke="#000" stroke-width="1.5"/>
+<text x="333" y="167" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700" text-anchor="middle" fill="#fff">▦</text>
+<text x="195" y="170" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" text-anchor="middle" fill="#000">Сентябрь 2026</text>
+<text x="195" y="225" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#000">Всего</text>
+<text x="195" y="264" font-family="Inter, Arial, sans-serif" font-size="31" font-weight="800" text-anchor="middle" fill="#000">3 259 CZK</text>
+<text x="55" y="311" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#000">Пн</text>
+<text x="102" y="311" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#000">Вт</text>
+<text x="149" y="311" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#000">Ср</text>
+<text x="196" y="311" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#000">Чт</text>
+<text x="243" y="311" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#000">Пт</text>
+<text x="290" y="311" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#000">Сб</text>
+<text x="337" y="311" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="middle" fill="#000">Вс</text>
+<line x1="42" y1="326" x2="348" y2="326" stroke="#000" stroke-width="1"/>
+<text x="99" y="368" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#000">1</text>
+<text x="146" y="368" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#000">2</text>
+<text x="193" y="368" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#000">3</text>
+<text x="240" y="368" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#000">4</text>
+<rect x="266" y="341" width="43" height="43" rx="8" fill="#000" stroke="#000" stroke-width="0"/>
+<text x="287" y="359" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="#fff">5</text>
+<text x="287" y="374" font-family="Inter, Arial, sans-serif" font-size="8" font-weight="600" text-anchor="middle" fill="#fff">1920</text>
+<text x="334" y="368" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#000">6</text>
+<text x="52" y="416" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#000">7</text>
+<text x="99" y="416" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#000">8</text>
+<text x="146" y="416" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#000">9</text>
+<rect x="172" y="389" width="43" height="43" rx="8" fill="#000" stroke="#000" stroke-width="0"/>
+<text x="193" y="407" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="#fff">10</text>
+<text x="193" y="422" font-family="Inter, Arial, sans-serif" font-size="8" font-weight="600" text-anchor="middle" fill="#fff">218</text>
+<rect x="219" y="389" width="43" height="43" rx="8" fill="#000" stroke="#000" stroke-width="0"/>
+<text x="240" y="407" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="#fff">11</text>
+<text x="240" y="422" font-family="Inter, Arial, sans-serif" font-size="8" font-weight="600" text-anchor="middle" fill="#fff">64</text>
+<text x="287" y="416" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#000">12</text>
+<text x="334" y="416" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#000">13</text>
+<text x="52" y="464" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#000">14</text>
+<text x="99" y="464" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#000">15</text>
+<text x="146" y="464" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#000">16</text>
+<text x="193" y="464" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#000">17</text>
+<rect x="219" y="437" width="43" height="43" rx="8" fill="#000" stroke="#000" stroke-width="0"/>
+<text x="240" y="455" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="#fff">18</text>
+<text x="240" y="470" font-family="Inter, Arial, sans-serif" font-size="8" font-weight="600" text-anchor="middle" fill="#fff">97</text>
+<rect x="266" y="437" width="43" height="43" rx="8" fill="#000" stroke="#000" stroke-width="0"/>
+<text x="287" y="455" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="#fff">19</text>
+<text x="287" y="470" font-family="Inter, Arial, sans-serif" font-size="8" font-weight="600" text-anchor="middle" fill="#fff">346</text>
+<rect x="313" y="437" width="43" height="43" rx="8" fill="#000" stroke="#000" stroke-width="0"/>
+<text x="334" y="455" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="#fff">20</text>
+<text x="334" y="470" font-family="Inter, Arial, sans-serif" font-size="8" font-weight="600" text-anchor="middle" fill="#fff">87</text>
+<rect x="31" y="485" width="43" height="43" rx="8" fill="#000" stroke="#000" stroke-width="0"/>
+<text x="52" y="503" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="#fff">21</text>
+<text x="52" y="518" font-family="Inter, Arial, sans-serif" font-size="8" font-weight="600" text-anchor="middle" fill="#fff">102</text>
+<rect x="78" y="485" width="43" height="43" rx="8" fill="#000" stroke="#000" stroke-width="0"/>
+<text x="99" y="503" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="#fff">22</text>
+<text x="99" y="518" font-family="Inter, Arial, sans-serif" font-size="8" font-weight="600" text-anchor="middle" fill="#fff">110</text>
+<rect x="125" y="485" width="43" height="43" rx="8" fill="#000" stroke="#000" stroke-width="0"/>
+<text x="146" y="503" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="#fff">23</text>
+<text x="146" y="518" font-family="Inter, Arial, sans-serif" font-size="8" font-weight="600" text-anchor="middle" fill="#fff">105</text>
+<rect x="172" y="485" width="43" height="43" rx="8" fill="#000" stroke="#000" stroke-width="0"/>
+<text x="193" y="503" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="#fff">24</text>
+<text x="193" y="518" font-family="Inter, Arial, sans-serif" font-size="8" font-weight="600" text-anchor="middle" fill="#fff">209</text>
+<text x="240" y="512" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#000">25</text>
+<text x="287" y="512" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#000">26</text>
+<text x="334" y="512" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#000">27</text>
+<text x="52" y="560" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#000">28</text>
+<text x="99" y="560" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#000">29</text>
+<text x="146" y="560" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="400" text-anchor="middle" fill="#000">30</text>
+<text x="24" y="654" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" text-anchor="start" fill="#000">Чеки</text>
+<rect x="22" y="675" width="346" height="58" rx="18" fill="#fff" stroke="#000" stroke-width="2"/>
+<text x="42" y="710" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="700" text-anchor="start" fill="#000">Сентябрь 2026</text>
+<text x="346" y="710" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="600" text-anchor="end" fill="#000">3 259 CZK</text>
+<circle cx="339" cy="779" r="28" fill="#000" stroke="#000" stroke-width="0"/>
+<text x="339" y="790" font-family="Inter, Arial, sans-serif" font-size="31" font-weight="300" text-anchor="middle" fill="#fff">+</text>
+</g>
+<text x="50" y="1102" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="700" text-anchor="start" fill="#000">04  /  Кошелёк</text>
+<g transform="translate(50 1120)">
+<rect x="0" y="0" width="390" height="844" rx="34" fill="#fff" stroke="#000" stroke-width="2"/>
+<text x="27" y="33" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="start" fill="#000">9:41</text>
+<line x1="320" y1="26" x2="330" y2="26" stroke="#000" stroke-width="2"/>
+<line x1="336" y1="23" x2="336" y2="29" stroke="#000" stroke-width="2"/>
+<rect x="345" y="21" width="22" height="10" rx="3" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="24" y="91" font-family="Inter, Arial, sans-serif" font-size="27" font-weight="800" text-anchor="start" fill="#000">Expenses</text>
+<circle cx="344" cy="78" r="21" fill="#fff" stroke="#000" stroke-width="2"/>
+<text x="344" y="84" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800" text-anchor="middle" fill="#000">W</text>
+<rect x="20" y="124" width="350" height="485" rx="24" fill="#fff" stroke="#000" stroke-width="2"/>
+<rect x="40" y="143" width="34" height="34" rx="10" fill="#000" stroke="#000" stroke-width="1.5"/>
+<text x="57" y="167" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700" text-anchor="middle" fill="#fff">▣</text>
+<rect x="316" y="143" width="34" height="34" rx="10" fill="#fff" stroke="#000" stroke-width="1.5"/>
+<text x="333" y="167" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700" text-anchor="middle" fill="#000">▦</text>
+<text x="195" y="170" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" text-anchor="middle" fill="#000">Кошелёк</text>
+<text x="195" y="318" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" text-anchor="middle" fill="#000">Баланс кошелька</text>
+<text x="195" y="364" font-family="Inter, Arial, sans-serif" font-size="36" font-weight="800" text-anchor="middle" fill="#000">7 823 CZK</text>
+<line x1="42" y1="421" x2="348" y2="421" stroke="#000" stroke-width="1"/>
+<text x="45" y="448" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" text-anchor="start" fill="#000">Пополнения</text>
+<text x="346" y="448" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="700" text-anchor="end" fill="#000">+17 162 CZK</text>
+<text x="24" y="654" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" text-anchor="start" fill="#000">Пополнения</text>
+<rect x="22" y="675" width="346" height="56" rx="17" fill="#fff" stroke="#000" stroke-width="2"/>
+<text x="41" y="710" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="700" text-anchor="start" fill="#000">Сентябрь 2026</text>
+<text x="346" y="710" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="600" text-anchor="end" fill="#000">12 000 CZK</text>
+<text x="44" y="768" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="500" text-anchor="start" fill="#000">⊕</text>
+<text x="79" y="759" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="700" text-anchor="start" fill="#000">Пополнение</text>
+<text x="79" y="777" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" fill="#000">24 сентября</text>
+<text x="346" y="768" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="700" text-anchor="end" fill="#000">+2 000 CZK</text>
+<circle cx="339" cy="779" r="28" fill="#000" stroke="#000" stroke-width="0"/>
+<text x="339" y="790" font-family="Inter, Arial, sans-serif" font-size="31" font-weight="300" text-anchor="middle" fill="#fff">+</text>
+</g>
+<text x="490" y="1102" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="700" text-anchor="start" fill="#000">05  /  Добавление расхода</text>
+<g transform="translate(490 1120)">
+<rect x="0" y="0" width="390" height="844" rx="34" fill="#fff" stroke="#000" stroke-width="2"/>
+<text x="27" y="33" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="start" fill="#000">9:41</text>
+<line x1="320" y1="26" x2="330" y2="26" stroke="#000" stroke-width="2"/>
+<line x1="336" y1="23" x2="336" y2="29" stroke="#000" stroke-width="2"/>
+<rect x="345" y="21" width="22" height="10" rx="3" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="24" y="91" font-family="Inter, Arial, sans-serif" font-size="27" font-weight="800" text-anchor="start" fill="#000">Добавить расход</text>
+<circle cx="344" cy="78" r="21" fill="#fff" stroke="#000" stroke-width="2"/>
+<text x="344" y="84" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800" text-anchor="middle" fill="#000">W</text>
+<rect x="24" y="129" width="342" height="137" rx="22" fill="#fff" stroke="#000" stroke-width="2"/>
+<text x="47" y="161" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="600" text-anchor="start" fill="#000">Сумма</text>
+<text x="47" y="223" font-family="Inter, Arial, sans-serif" font-size="52" font-weight="800" text-anchor="start" fill="#000">280</text>
+<text x="338" y="221" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" text-anchor="end" fill="#000">CZK</text>
+<text x="25" y="316" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="600" text-anchor="start" fill="#000">Название</text>
+<rect x="24" y="333" width="342" height="58" rx="16" fill="#fff" stroke="#000" stroke-width="2"/>
+<text x="43" y="369" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="400" text-anchor="start" fill="#000">Покупка для дома</text>
+<rect x="24" y="415" width="342" height="75" rx="16" fill="#fff" stroke="#000" stroke-width="2"/>
+<text x="46" y="443" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" fill="#000">Когда</text>
+<text x="46" y="469" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="700" text-anchor="start" fill="#000">Сегодня, 28 сентября</text>
+<text x="345" y="465" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="400" text-anchor="end" fill="#000">›</text>
+<rect x="24" y="507" width="342" height="75" rx="16" fill="#fff" stroke="#000" stroke-width="2"/>
+<text x="46" y="535" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" fill="#000">Категория</text>
+<text x="46" y="561" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="700" text-anchor="start" fill="#000">Дом</text>
+<text x="345" y="557" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="400" text-anchor="end" fill="#000">›</text>
+<rect x="24" y="614" width="342" height="56" rx="16" fill="#000" stroke="#000" stroke-width="0"/>
+<text x="195" y="649" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="700" text-anchor="middle" fill="#fff">Сохранить</text>
+</g>
+<text x="930" y="1102" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="700" text-anchor="start" fill="#000">06  /  Настройки</text>
+<g transform="translate(930 1120)">
+<rect x="0" y="0" width="390" height="844" rx="34" fill="#fff" stroke="#000" stroke-width="2"/>
+<text x="27" y="33" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="start" fill="#000">9:41</text>
+<line x1="320" y1="26" x2="330" y2="26" stroke="#000" stroke-width="2"/>
+<line x1="336" y1="23" x2="336" y2="29" stroke="#000" stroke-width="2"/>
+<rect x="345" y="21" width="22" height="10" rx="3" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="24" y="91" font-family="Inter, Arial, sans-serif" font-size="27" font-weight="800" text-anchor="start" fill="#000">Настройки</text>
+<circle cx="344" cy="78" r="21" fill="#fff" stroke="#000" stroke-width="2"/>
+<text x="344" y="84" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800" text-anchor="middle" fill="#000">W</text>
+<text x="25" y="144" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="start" fill="#000">Аккаунт</text>
+<rect x="22" y="162" width="346" height="90" rx="18" fill="#fff" stroke="#000" stroke-width="2"/>
+<circle cx="62" cy="206" r="24" fill="#fff" stroke="#000" stroke-width="2"/>
+<text x="62" y="212" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" text-anchor="middle" fill="#000">W</text>
+<text x="101" y="204" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" text-anchor="start" fill="#000">Мой профиль</text>
+<text x="101" y="225" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" fill="#000">Персональные данные</text>
+<text x="25" y="292" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="start" fill="#000">Предпочтения</text>
+<rect x="22" y="309" width="346" height="220" rx="18" fill="#fff" stroke="#000" stroke-width="2"/>
+<text x="43" y="349" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="600" text-anchor="start" fill="#000">Язык</text>
+<text x="345" y="349" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="400" text-anchor="end" fill="#000">Русский  ›</text>
+<line x1="43" y1="372" x2="347" y2="372" stroke="#000" stroke-width="1"/>
+<text x="43" y="410" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="600" text-anchor="start" fill="#000">Валюта</text>
+<text x="345" y="410" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="400" text-anchor="end" fill="#000">CZK  ›</text>
+<line x1="43" y1="433" x2="347" y2="433" stroke="#000" stroke-width="1"/>
+<text x="43" y="471" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="600" text-anchor="start" fill="#000">Тема</text>
+<text x="345" y="471" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="400" text-anchor="end" fill="#000">Светлая  ›</text>
+<text x="25" y="571" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="start" fill="#000">Управление</text>
+<rect x="22" y="588" width="346" height="112" rx="18" fill="#fff" stroke="#000" stroke-width="2"/>
+<text x="43" y="631" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="600" text-anchor="start" fill="#000">Категории</text>
+<text x="345" y="631" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="400" text-anchor="end" fill="#000">›</text>
+<line x1="43" y1="647" x2="347" y2="647" stroke="#000" stroke-width="1"/>
+<text x="43" y="681" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="600" text-anchor="start" fill="#000">Семейный аккаунт</text>
+<text x="345" y="681" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="400" text-anchor="end" fill="#000">›</text>
+</g>
+<text x="50" y="1998" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="600" text-anchor="start" fill="#000">WOILET  /  UI CONCEPT  ·  390 × 844  ·  SVG layers</text>
+</svg>

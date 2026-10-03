@@ -65,7 +65,7 @@ export function SpeedDialFab({ actions }: { actions: SpeedDialAction[] }) {
 
   return (
     <>
-      {/* Затемнение позади: тап мимо — закрыть. Ловит тапы только когда открыто. */}
+      {/* Фон темы отделяет меню от графика и закрывает его по тапу вне действий. */}
       <Animated.View
         style={[StyleSheet.absoluteFill, styles.backdrop, { opacity: backdropOpacity }]}
         pointerEvents={open ? 'auto' : 'none'}
@@ -123,7 +123,7 @@ export function SpeedDialFab({ actions }: { actions: SpeedDialAction[] }) {
 
 const styles = themedStyles(() => StyleSheet.create({
   backdrop: {
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: colors.background,
   },
   corner: {
     position: 'absolute',
@@ -138,6 +138,8 @@ const styles = themedStyles(() => StyleSheet.create({
     width: FAB_SIZE,
     borderRadius: FAB_SIZE / 2,
     backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   items: {
     position: 'absolute',
@@ -181,10 +183,5 @@ const styles = themedStyles(() => StyleSheet.create({
     backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: colors.accent,
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 10,
   },
 }));

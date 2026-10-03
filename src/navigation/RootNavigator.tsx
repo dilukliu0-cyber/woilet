@@ -31,7 +31,7 @@ const linking: LinkingOptions<AppStackParamList> = {
   config: {
     // При холодном старте по ссылке под сканером остаются табы,
     // чтобы «назад» вёл на Главную, а не закрывал приложение.
-    initialRouteName: 'Tabs',
+    initialRouteName: 'Home',
     screens: {
       Scan: 'scan',
     },

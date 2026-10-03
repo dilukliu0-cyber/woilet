@@ -12,7 +12,7 @@ export type OnboardingStackParamList = {
 export type QueuedPhoto = { uri: string; base64: string };
 
 export type AppStackParamList = {
-  Tabs: undefined;
+  Home: undefined;
   Scan: undefined;
   ReceiptDetail: { receiptId: string };
   Categories: undefined;
@@ -24,4 +24,6 @@ export type AppStackParamList = {
   IntroPreview: undefined;
   Profile: undefined;
   Subscription: undefined;
+  Chat: undefined;
+  Shopping: undefined;
 };

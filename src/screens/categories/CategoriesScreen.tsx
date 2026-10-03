@@ -11,7 +11,7 @@ import type { AppStackParamList } from '../../navigation/types';
 import { useAuthStore } from '../../store/authStore';
 import { useCategoriesStore } from '../../store/categoriesStore';
 import { useLocaleStore } from '../../store/localeStore';
-import { colors } from '../../theme/colors';
+import { colors, getCategoryColor } from '../../theme/colors';
 import { getCategoryIcon, SELECTABLE_ICON_NAMES } from '../../utils/categoryIcons';
 import { themedStyles } from '../../theme/themedStyles';
 
@@ -77,8 +77,8 @@ export function CategoriesScreen({ navigation }: Props) {
             const Icon = getCategoryIcon(category.icon);
             return (
               <View key={category.id} style={styles.tile}>
-                <View style={[styles.tileIconWrap, { backgroundColor: `${category.color}22` }]}>
-                  <Icon color={category.color} size={22} />
+                <View style={[styles.tileIconWrap, { backgroundColor: colors.accentSoft }]}>
+                  <Icon color={getCategoryColor(category.name)} size={22} />
                 </View>
                 <Text style={styles.tileLabel} numberOfLines={2}>
                   {translateCategoryName(category.name, locale)}
@@ -193,7 +193,7 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: '#000000',
     justifyContent: 'flex-end',
   },
   sheet: {
