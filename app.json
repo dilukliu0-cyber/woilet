@@ -4,7 +4,10 @@
     "slug": "woilet",
     "owner": "woilet",
     "version": "1.0.0",
-    "scheme": ["wailet", "woilet"],
+    "scheme": [
+      "wailet",
+      "woilet"
+    ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -12,7 +15,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.dilukliu0.wailet",
       "appleTeamId": "RH67B2MANC",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSSupportsLiveActivities": true
@@ -28,7 +31,9 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["android.permission.CAMERA"]
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
