@@ -3,6 +3,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   CalendarDays,
+  ChevronDown,
   ChevronRight,
   CloudUpload,
   LayoutGrid,
@@ -28,6 +29,7 @@ import {
   Easing,
   FlatList,
   Image,
+  LayoutAnimation,
   Modal,
   PanResponder,
   Platform,
@@ -38,6 +40,7 @@ import {
   View,
 } from 'react-native';
 import { WeeklySpendingChart } from '../../components/charts/WeeklySpendingChart';
+import { SegmentedControl } from '../../components/ui/SegmentedControl';
 import { ReceiptListItem } from '../../components/cards/ReceiptListItem';
 import { LimitsScreen } from '../limits/LimitsScreen';
 import { AnimatedNumber } from '../../components/ui/AnimatedNumber';
@@ -103,6 +106,13 @@ function monthLabels(intlLocale: string): string[] {
   );
 }
 
+type CardView = 'week' | 'month' | 'calendar';
+const CARD_VIEWS: CardView[] = ['week', 'month', 'calendar'];
+
+function animateNextLayout() {
+  LayoutAnimation.configureNext(LayoutAnimation.create(260, 'easeInEaseOut', 'opacity'));
+}
+
 export function ExpensesScreen() {
   const t = useT();
   const isPro = useSubscriptionStore((state) => state.isPro);
@@ -136,17 +146,13 @@ export function ExpensesScreen() {
   } | null>(null);
   const [incomes, setIncomes] = useState<IncomeRecord[]>([]);
 
-  // 3D-переворот карточки: спереди диаграмма, сзади календарь (поворот вправо)
-  // или кошелёк (поворот влево).
-  const flipAnim = useRef(new Animated.Value(0)).current;
-  const [openFace, setOpenFace] = useState<'calendar' | 'wallet' | null>(null);
-  const [webFace, setWebFace] = useState<'calendar' | 'wallet' | null>(null);
-  const flipRunning = useRef(false);
-  const walletMode = openFace === 'wallet';
-  const cardHeight = useRef(new Animated.Value(423)).current;
-  const measuredCardHeight = useRef<number | null>(null);
-  const [cardView, setCardView] = useState<'month' | 'week'>('month');
-  const cardViewRef = useRef<'month' | 'week'>('month');
+  // Карточка трат: три вида за период (неделя, месяц по категориям,
+  // календарь) переключаются подписанным сегментом; кошелёк — отдельная
+  // раскрывающаяся строка. Раньше это был 3D-переворот с безымянными
+  // иконками в углах: что откроется, приходилось угадывать.
+  const [walletMode, setWalletMode] = useState(false);
+  const [cardView, setCardView] = useState<CardView>('month');
+  const cardViewRef = useRef<CardView>('month');
   const switchingCard = useRef(false);
   const contentOpacity = useRef(new Animated.Value(1)).current;
   const contentOffset = useRef(new Animated.Value(0)).current;
@@ -159,11 +165,13 @@ export function ExpensesScreen() {
   const calendarContentOffset = useRef(new Animated.Value(0)).current;
   const headerScroll = useRef(new Animated.Value(0)).current;
 
-  const switchCardView = useCallback((next: 'month' | 'week') => {
+  const switchCardView = useCallback((next: CardView) => {
     if (cardViewRef.current === next || switchingCard.current) return;
     switchingCard.current = true;
     haptics.selection();
-    const direction = next === 'week' ? -1 : 1;
+    // Сдвиг в сторону того сегмента, куда уходим: содержимое «едет» вслед
+    // за плашкой переключателя, а не просто мигает.
+    const direction = CARD_VIEWS.indexOf(next) > CARD_VIEWS.indexOf(cardViewRef.current) ? -1 : 1;
     Animated.parallel([
       Animated.timing(contentOpacity, { toValue: 0, duration: 130, useNativeDriver: true }),
       Animated.timing(contentOffset, {
@@ -179,7 +187,12 @@ export function ExpensesScreen() {
       }
       contentOffset.setValue(-direction * 24);
       cardViewRef.current = next;
+      // Высота карточки у видов разная: пусть меняется плавно, а не рывком.
+      animateNextLayout();
       setCardView(next);
+      // Фильтр по дню живёт только в календаре — уходя из него, снимаем,
+      // иначе список чеков остался бы урезанным без видимой причины.
+      if (next !== 'calendar') setSelectedDay(null);
       requestAnimationFrame(() => {
         Animated.parallel([
           Animated.timing(contentOpacity, {
@@ -205,10 +218,18 @@ export function ExpensesScreen() {
     onMoveShouldSetPanResponder: (_, gesture) =>
       Math.abs(gesture.dx) > 18 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.3,
     onPanResponderRelease: (_, gesture) => {
-      if (gesture.dx < -45) switchCardView('week');
-      else if (gesture.dx > 45) switchCardView('month');
+      if (gesture.dx < -45) stepCardView(1);
+      else if (gesture.dx > 45) stepCardView(-1);
     },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [switchCardView]);
+
+  // Свайп по карточке листает виды по порядку сегментов. В календаре
+  // горизонтальный свайп занят — им листаются месяцы.
+  function stepCardView(delta: number) {
+    const next = CARD_VIEWS[CARD_VIEWS.indexOf(cardViewRef.current) + delta];
+    if (next) switchCardView(next);
+  }
 
   // Лимиты открываются не отдельным экраном, а разворотом карточки
   // расходов на весь экран поверх этого же экрана (см. рендер overlay
@@ -372,34 +393,6 @@ export function ExpensesScreen() {
     ];
   }
 
-  function navigateFace(next: 'calendar' | 'wallet' | null) {
-    if (flipRunning.current || openFace === next) return;
-    flipRunning.current = true;
-    haptics.light();
-    const fromBackToBack = openFace !== null && next !== null;
-    if (Platform.OS === 'web') {
-      setWebFace(next);
-      setTimeout(() => {
-        setOpenFace(next);
-        flipRunning.current = false;
-      }, 420);
-      return;
-    }
-    Animated.timing(flipAnim, {
-      toValue: next === 'calendar' ? 1 : next === 'wallet' ? -1 : 0,
-      duration: fromBackToBack ? 520 : 360,
-      easing: Easing.inOut(Easing.quad),
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (finished) setOpenFace(next);
-      flipRunning.current = false;
-    });
-  }
-
-  function toggleFlip() {
-    navigateFace(openFace === 'calendar' ? null : 'calendar');
-  }
-
   function loadWallet() {
     if (!userId) return;
     fetchWalletBalance(userId).then(setWalletBalance);
@@ -407,7 +400,33 @@ export function ExpensesScreen() {
   }
 
   function toggleWallet() {
-    navigateFace(openFace === 'wallet' ? null : 'wallet');
+    haptics.light();
+    animateNextLayout();
+    setWalletMode((open) => !open);
+  }
+
+  // Свайпы мышью/пером на вебе: PanResponder там срабатывает не всегда.
+  function handlePointerDown(x: number, y: number) {
+    cardSwipeHandled.current = false;
+    calendarSwipeHandled.current = false;
+    pointerStart.current = { x, y };
+  }
+
+  function handlePointerUp(x: number, y: number) {
+    if (!pointerStart.current) return;
+    const dx = x - pointerStart.current.x;
+    const dy = y - pointerStart.current.y;
+    pointerStart.current = null;
+    if (Math.abs(dx) <= 45 || Math.abs(dx) <= Math.abs(dy) * 1.3) return;
+    if (cardViewRef.current === 'calendar') {
+      if (calendarSwipeHandled.current) return;
+      calendarSwipeHandled.current = true;
+      animateCalMonth(dx < 0 ? 1 : -1);
+    } else {
+      if (cardSwipeHandled.current) return;
+      cardSwipeHandled.current = true;
+      stepCardView(dx < 0 ? 1 : -1);
+    }
   }
 
   function handleIncomeLongPress(income: IncomeRecord) {
@@ -609,96 +628,6 @@ export function ExpensesScreen() {
     : `${MONTH_NAMES[calMonth]} ${calYear}`;
   const prevMonthLabel = MONTH_NAMES[(calMonth + 11) % 12];
 
-  // У каждой стороны свои кнопки: они поворачиваются вместе с карточкой.
-  const frontAnimated = {
-    transform: [
-      { perspective: 1000 },
-      {
-        rotateY: flipAnim.interpolate({
-          inputRange: [-1, 0, 1],
-          outputRange: ['-180deg', '0deg', '180deg'],
-        }),
-      },
-    ],
-  };
-  const calendarAnimated = {
-    transform: [
-      { perspective: 1000 },
-      {
-        rotateY: flipAnim.interpolate({
-          inputRange: [-1, 0, 1],
-          outputRange: ['180deg', '180deg', '360deg'],
-        }),
-      },
-    ],
-  };
-  const walletAnimated = {
-    transform: [
-      { perspective: 1000 },
-      {
-        rotateY: flipAnim.interpolate({
-          inputRange: [-1, 0, 1],
-          outputRange: ['-360deg', '-180deg', '-180deg'],
-        }),
-      },
-    ],
-  };
-  // В браузере 3D-переворот ненадёжен: backface-visibility: hidden там не
-  // всегда прячет обратную сторону, и кошелёк с календарём показывались
-  // зеркально. Поэтому на вебе стороны не вращаются, а сменяют друг друга
-  // прозрачностью. На телефоне остаётся нативный переворот (flipAnim).
-  const webTransition = { transition: 'opacity 260ms ease' } as any;
-  const webFaceStyle = (face: 'calendar' | 'wallet' | null) =>
-    webFace === face
-      ? { opacity: 1, transform: [] as never[] }
-      : { opacity: 0, pointerEvents: 'none' as const, transform: [] as never[] };
-  const webFront = webFaceStyle(null);
-  const webCalendar = webFaceStyle('calendar');
-  const webWallet = webFaceStyle('wallet');
-
-  function cardCorners(face: 'expenses' | 'calendar' | 'wallet') {
-    return (
-      <>
-        <View style={styles.cardCornerLeft}>
-          <Pressable
-            style={[styles.cornerButton, face === 'wallet' && styles.cornerButtonActive]}
-            onPress={toggleWallet}
-            hitSlop={6}
-          >
-            <Wallet color={face === 'wallet' ? colors.background : colors.accent} size={18} />
-          </Pressable>
-        </View>
-        <View style={styles.cardCorner}>
-          {hasFamilyReceipts && (
-            <Pressable
-              style={[styles.cornerButton, showOnlyMine && styles.cornerButtonActive]}
-              onPress={() => {
-                haptics.selection();
-                setShowOnlyMine((v) => !v);
-              }}
-              hitSlop={6}
-            >
-              {showOnlyMine ? (
-                <User color={colors.background} size={18} />
-              ) : (
-                <Users color={colors.accent} size={18} />
-              )}
-            </Pressable>
-          )}
-          <Pressable
-            style={[styles.cornerButton, face === 'calendar' && styles.cornerButtonActive]}
-            onPress={toggleFlip}
-            hitSlop={6}
-          >
-            <CalendarDays
-              color={face === 'calendar' ? colors.background : colors.accent}
-              size={18}
-            />
-          </Pressable>
-        </View>
-      </>
-    );
-  }
 
   return (
     <View style={styles.container}>
@@ -813,224 +742,205 @@ export function ExpensesScreen() {
                 месяца экран выглядел сломанным. */}
             {(
               <FadeInView index={0}>
-                <Animated.View style={[styles.flipWrap, { height: cardHeight }]}>
-                  {/* Задняя сторона: мини-календарь (кнопка справа) */}
-                  <Animated.View
-                    style={[styles.chartCard, styles.cardBack, styles.calendarSwipeSurface, Platform.OS === 'web' ? webCalendar : calendarAnimated, Platform.OS === 'web' && webTransition]}
-                    pointerEvents={openFace === 'calendar' ? 'auto' : 'none'}
-                    {...calendarSwipe.panHandlers}
-                    onPointerDown={(event) => {
-                      calendarSwipeHandled.current = false;
-                      calendarPointerStart.current = { x: event.nativeEvent.pageX, y: event.nativeEvent.pageY };
-                    }}
-                    onPointerUp={(event) => {
-                      if (calendarSwipeHandled.current) return;
-                      if (!calendarPointerStart.current) return;
-                      const dx = event.nativeEvent.pageX - calendarPointerStart.current.x;
-                      const dy = event.nativeEvent.pageY - calendarPointerStart.current.y;
-                      calendarPointerStart.current = null;
-                      if (Math.abs(dx) <= 45 || Math.abs(dx) <= Math.abs(dy) * 1.3) return;
-                      calendarSwipeHandled.current = true;
-                      animateCalMonth(dx < 0 ? 1 : -1);
-                    }}
-                  >
-                    {cardCorners('calendar')}
-                    <Animated.View style={[styles.calendarContent, {
-                      opacity: calendarContentOpacity,
-                      transform: [{ translateX: calendarContentOffset }],
-                    }]}>
-                    <Text style={[styles.calendarTitle, styles.calendarNavTitle]}>
-                      {MONTH_NAMES[calMonth]} {calYear}
-                    </Text>
-                    <View style={styles.calendarSummary}>
-                      <Text style={styles.calendarSummaryLabel}>{t('expenses_total')}</Text>
-                      <Text style={styles.calendarSummaryAmount}>
-                        {calendarTotal.toFixed(0)} {categoryCurrency}
-                      </Text>
-                    </View>
-                    <View style={styles.weekRow}>
-                      {WEEKDAYS.map((day) => (
-                        <Text key={day} style={styles.weekday}>
-                          {day}
-                        </Text>
-                      ))}
-                    </View>
-                    <View style={styles.daysGrid}>
-                      {calendarCells.map((day, i) => {
-                        const total = day !== null ? dailyTotals.get(day) : undefined;
-                        return (
-                          <View key={i} style={styles.dayCell}>
-                            {day !== null && (
-                              <Pressable
-                                disabled={total === undefined}
-                                onPress={() => {
-                                  if (calendarSwipeHandled.current) return;
-                                  haptics.selection();
-                                  setSelectedDay((prev) => (prev === day ? null : day));
-                                }}
-                                style={[
-                                  styles.dayInner,
-                                  total !== undefined && styles.daySpent,
-                                  isCurrentMonth && day === today.getDate() && styles.dayToday,
-                                  selectedDay === day && styles.daySelected,
-                                ]}
-                              >
-                                <Text
-                                  style={[
-                                    styles.dayText,
-                                    total !== undefined && styles.dayTextSpent,
-                                    selectedDay === day && styles.dayTextSelected,
-                                  ]}
-                                >
-                                  {day}
-                                </Text>
-                                {total !== undefined && (
-                                  <Text
-                                    style={[styles.daySpentAmount, selectedDay === day && styles.dayTextSelected]}
-                                    numberOfLines={1}
-                                  >
-                                    {total.toFixed(0)}
-                                  </Text>
-                                )}
-                              </Pressable>
-                            )}
-                          </View>
-                        );
-                      })}
-                    </View>
-                    </Animated.View>
-                  </Animated.View>
-
-                  {/* Задняя сторона: кошелёк (кнопка слева) */}
-                  <Animated.View
-                    style={[styles.chartCard, styles.cardBack, Platform.OS === 'web' ? webWallet : walletAnimated, Platform.OS === 'web' && webTransition]}
-                    pointerEvents={openFace === 'wallet' ? 'auto' : 'none'}
-                  >
-                    {cardCorners('wallet')}
-                    <Text style={[styles.calendarTitle, styles.backTitle]}>{t('expenses_wallet')}</Text>
-                    <View style={styles.walletBody}>
-                      <Text style={styles.walletCaption}>{t('expenses_wallet_balance')}</Text>
-                      <AnimatedNumber
-                        value={walletBalance?.balance ?? 0}
-                        formatter={(n) => `${n.toFixed(0)} ${walletBalance?.currency || categoryCurrency}`}
-                        style={styles.walletBalanceBig}
+                <View style={styles.chartCard}>
+                  {/* Подписанный переключатель вместо иконок в углах и
+                      3D-переворота: все три вида — траты за период, и что
+                      откроется, видно сразу. */}
+                  <View style={styles.cardTopRow}>
+                    <View style={{ flex: 1 }}>
+                      <SegmentedControl
+                        options={[
+                          { value: 'week', label: t('expenses_view_week') },
+                          { value: 'month', label: t('expenses_view_month') },
+                          { value: 'calendar', label: t('expenses_view_calendar') },
+                        ]}
+                        value={cardView}
+                        onChange={switchCardView}
                       />
-                      <View style={styles.walletStrip}>
-                        <View style={styles.walletStripItem}>
-                          <Text style={styles.walletStripLabel}>{t('expenses_topups_history')}</Text>
-                          <Text style={styles.walletSubIncome}>
-                            +{(walletBalance?.totalIncome ?? 0).toFixed(0)} {walletBalance?.currency || categoryCurrency}
+                    </View>
+                    {hasFamilyReceipts && (
+                      <Pressable
+                        style={[styles.cornerButton, showOnlyMine && styles.cornerButtonActive]}
+                        onPress={() => {
+                          haptics.selection();
+                          setShowOnlyMine((v) => !v);
+                        }}
+                        hitSlop={6}
+                      >
+                        {showOnlyMine ? (
+                          <User color={colors.background} size={18} />
+                        ) : (
+                          <Users color={colors.accent} size={18} />
+                        )}
+                      </Pressable>
+                    )}
+                  </View>
+
+                  <Animated.View
+                    style={{ opacity: contentOpacity, transform: [{ translateX: contentOffset }] }}
+                    {...(cardView === 'calendar' ? calendarSwipe.panHandlers : cardSwipe.panHandlers)}
+                    onPointerDown={(event) => handlePointerDown(event.nativeEvent.pageX, event.nativeEvent.pageY)}
+                    onPointerUp={(event) => handlePointerUp(event.nativeEvent.pageX, event.nativeEvent.pageY)}
+                  >
+                    {cardView === 'calendar' ? (
+                      <>
+                        <Animated.View style={[styles.calendarContent, {
+                          opacity: calendarContentOpacity,
+                          transform: [{ translateX: calendarContentOffset }],
+                        }]}>
+                        <Text style={[styles.calendarTitle, styles.calendarNavTitle]}>
+                          {MONTH_NAMES[calMonth]} {calYear}
+                        </Text>
+                        <View style={styles.calendarSummary}>
+                          <Text style={styles.calendarSummaryLabel}>{t('expenses_total')}</Text>
+                          <Text style={styles.calendarSummaryAmount}>
+                            {calendarTotal.toFixed(0)} {categoryCurrency}
                           </Text>
                         </View>
-                      </View>
-                    </View>
-                  </Animated.View>
-
-                  {/* Передняя сторона: диаграмма.
-                      Блюр тут не годится: на web backdrop-filter «протекает»
-                      через все грани флип-карточки (они наложены друг на
-                      друга в одном контейнере) — размывало и календарь, и
-                      кошелёк на обратной стороне. Оставляем плоскую заливку. */}
-                  <Animated.View
-                    style={[styles.chartCard, Platform.OS === 'web' ? webFront : frontAnimated, Platform.OS === 'web' && webTransition]}
-                    pointerEvents={openFace ? 'none' : 'auto'}
-                    {...cardSwipe.panHandlers}
-                    onPointerDown={(event) => {
-                      cardSwipeHandled.current = false;
-                      pointerStart.current = { x: event.nativeEvent.pageX, y: event.nativeEvent.pageY };
-                    }}
-                    onPointerUp={(event) => {
-                      if (!pointerStart.current) return;
-                      const dx = event.nativeEvent.pageX - pointerStart.current.x;
-                      const dy = event.nativeEvent.pageY - pointerStart.current.y;
-                      pointerStart.current = null;
-                      if (Math.abs(dx) <= 45 || Math.abs(dx) <= Math.abs(dy) * 1.3) return;
-                      cardSwipeHandled.current = true;
-                      switchCardView(dx < 0 ? 'week' : 'month');
-                    }}
-                    onLayout={(e) => {
-                      const height = Math.ceil(e.nativeEvent.layout.height) + 3;
-                      if (height <= 3 || height === measuredCardHeight.current) return;
-                      const isFirstMeasure = measuredCardHeight.current === null;
-                      measuredCardHeight.current = height;
-                      if (isFirstMeasure) cardHeight.setValue(height);
-                      else Animated.timing(cardHeight, {
-                        toValue: height,
-                        duration: 260,
-                        easing: Easing.out(Easing.cubic),
-                        useNativeDriver: false,
-                      }).start();
-                    }}
-                  >
-                    {cardCorners('expenses')}
-                    <Animated.View style={{
-                      opacity: contentOpacity,
-                      transform: [{ translateX: contentOffset }],
-                    }}>
-                    {cardView === 'week' ? (
-                      <WeeklySpendingChart
-                        receipts={visibleReceipts}
-                        currency={settings?.currency ?? categoryCurrency ?? 'CZK'}
-                        weekdayLabels={WEEKDAYS}
-                        intlLocale={intlLocale}
-                        embedded
-                      />
-                    ) : (
-                      <>
-                        <View style={styles.barsWrap}>
-                          <AnimatedNumber
-                            value={monthTotal}
-                            formatter={(n) => `${n.toFixed(0)} ${categoryCurrency}`}
-                            style={styles.barsTotal}
-                          />
-                          <Text style={styles.barsTotalSub}>{periodLabel}</Text>
-                        </View>
-                        <View style={styles.legend}>
-                          {categories.map((entry) => (
-                            <Pressable
-                              key={entry.categoryName}
-                              style={styles.legendRow}
-                              onPress={() => {
-                                if (cardSwipeHandled.current) return;
-                                rootNav()?.navigate('Category', { categoryName: entry.categoryName });
-                              }}
-                            >
-                              <View style={styles.legendBody}>
-                                <View style={styles.legendTopRow}>
-                                  <Text style={styles.legendName}>{translateCategoryName(entry.categoryName, locale)}</Text>
-                                  <Text style={styles.legendAmount}>
-                                    {entry.total.toFixed(0)} {categoryCurrency}
-                                  </Text>
-                                </View>
-                                <View style={styles.barTrack}>
-                                  <View style={[styles.barFill, { width: `${Math.max((entry.total / maxCategoryTotal) * 100, 3)}%` }]} />
-                                </View>
-                              </View>
-                            </Pressable>
+                        <View style={styles.weekRow}>
+                          {WEEKDAYS.map((day) => (
+                            <Text key={day} style={styles.weekday}>
+                              {day}
+                            </Text>
                           ))}
                         </View>
-                        {categories.length === 0 && (
-                          <View style={styles.emptyMonth}>
-                            <Text style={styles.emptyMonthText}>{t('expenses_empty_month')}</Text>
-                            <Pressable onPress={() => shiftCalMonth(-1)} hitSlop={8}>
-                              <Text style={styles.emptyMonthAction}>
-                                {t('expenses_show_month', { month: prevMonthLabel })}
-                              </Text>
-                            </Pressable>
-                          </View>
+                        <View style={styles.daysGrid}>
+                          {calendarCells.map((day, i) => {
+                            const total = day !== null ? dailyTotals.get(day) : undefined;
+                            return (
+                              <View key={i} style={styles.dayCell}>
+                                {day !== null && (
+                                  <Pressable
+                                    disabled={total === undefined}
+                                    onPress={() => {
+                                      if (calendarSwipeHandled.current) return;
+                                      haptics.selection();
+                                      setSelectedDay((prev) => (prev === day ? null : day));
+                                    }}
+                                    style={[
+                                      styles.dayInner,
+                                      total !== undefined && styles.daySpent,
+                                      isCurrentMonth && day === today.getDate() && styles.dayToday,
+                                      selectedDay === day && styles.daySelected,
+                                    ]}
+                                  >
+                                    <Text
+                                      style={[
+                                        styles.dayText,
+                                        total !== undefined && styles.dayTextSpent,
+                                        selectedDay === day && styles.dayTextSelected,
+                                      ]}
+                                    >
+                                      {day}
+                                    </Text>
+                                    {total !== undefined && (
+                                      <Text
+                                        style={[styles.daySpentAmount, selectedDay === day && styles.dayTextSelected]}
+                                        numberOfLines={1}
+                                      >
+                                        {total.toFixed(0)}
+                                      </Text>
+                                    )}
+                                  </Pressable>
+                                )}
+                              </View>
+                            );
+                          })}
+                        </View>
+                        </Animated.View>
+                      </>
+                    ) : (
+                      <>
+                        {cardView === 'week' ? (
+                          <WeeklySpendingChart
+                            receipts={visibleReceipts}
+                            currency={settings?.currency ?? categoryCurrency ?? 'CZK'}
+                            weekdayLabels={WEEKDAYS}
+                            intlLocale={intlLocale}
+                            embedded
+                          />
+                        ) : (
+                          <>
+                            <View style={styles.barsWrap}>
+                              <AnimatedNumber
+                                value={monthTotal}
+                                formatter={(n) => `${n.toFixed(0)} ${categoryCurrency}`}
+                                style={styles.barsTotal}
+                              />
+                              <Text style={styles.barsTotalSub}>{periodLabel}</Text>
+                            </View>
+                            <View style={styles.legend}>
+                              {categories.map((entry) => (
+                                <Pressable
+                                  key={entry.categoryName}
+                                  style={styles.legendRow}
+                                  onPress={() => {
+                                    if (cardSwipeHandled.current) return;
+                                    rootNav()?.navigate('Category', { categoryName: entry.categoryName });
+                                  }}
+                                >
+                                  <View style={styles.legendBody}>
+                                    <View style={styles.legendTopRow}>
+                                      <Text style={styles.legendName}>{translateCategoryName(entry.categoryName, locale)}</Text>
+                                      <Text style={styles.legendAmount}>
+                                        {entry.total.toFixed(0)} {categoryCurrency}
+                                      </Text>
+                                    </View>
+                                    <View style={styles.barTrack}>
+                                      <View style={[styles.barFill, { width: `${Math.max((entry.total / maxCategoryTotal) * 100, 3)}%` }]} />
+                                    </View>
+                                  </View>
+                                </Pressable>
+                              ))}
+                            </View>
+                            {categories.length === 0 && (
+                              <View style={styles.emptyMonth}>
+                                <Text style={styles.emptyMonthText}>{t('expenses_empty_month')}</Text>
+                                <Pressable onPress={() => shiftCalMonth(-1)} hitSlop={8}>
+                                  <Text style={styles.emptyMonthAction}>
+                                    {t('expenses_show_month', { month: prevMonthLabel })}
+                                  </Text>
+                                </Pressable>
+                              </View>
+                            )}
+                          </>
                         )}
                       </>
                     )}
-                    </Animated.View>
+                  </Animated.View>
+
+                  {/* Кошелёк — не ещё один вид трат, а остаток: поэтому не
+                      сегмент, а строка, которая всегда на виду. Тап раскрывает
+                      пополнения, и список ниже переключается на них. */}
+                  <Pressable style={styles.walletRow} onPress={toggleWallet}>
+                    <Wallet color={colors.accent} size={18} />
+                    <Text style={styles.walletRowLabel}>{t('expenses_wallet')}</Text>
+                    <AnimatedNumber
+                      value={walletBalance?.balance ?? 0}
+                      formatter={(n) => `${n.toFixed(0)} ${walletBalance?.currency || categoryCurrency}`}
+                      style={styles.walletRowAmount}
+                    />
+                    <ChevronDown
+                      color={colors.textSecondary}
+                      size={16}
+                      style={{ transform: [{ rotate: walletMode ? '180deg' : '0deg' }] }}
+                    />
+                  </Pressable>
+                  {walletMode && (
+                    <View style={styles.walletDetails}>
+                      <Text style={styles.walletDetailsLabel}>{t('expenses_topups_history')}</Text>
+                      <Text style={styles.walletSubIncome}>
+                        +{(walletBalance?.totalIncome ?? 0).toFixed(0)} {walletBalance?.currency || categoryCurrency}
+                      </Text>
+                    </View>
+                  )}
 
                     <Pressable style={styles.limitsLink} onPress={openLimits}>
                       <ShieldCheck color={colors.accent} size={16} />
                       <Text style={styles.limitsLinkText}>{t('expenses_limits_link')}</Text>
                       <ChevronRight color={colors.textSecondary} size={16} />
                     </Pressable>
-                  </Animated.View>
-
-                </Animated.View>
+                </View>
               </FadeInView>
             )}
 
@@ -1183,8 +1093,6 @@ const styles = themedStyles(() => StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     gap: 16,
-    minHeight: 420,
-    backfaceVisibility: 'hidden',
     borderWidth: 2,
     borderColor: colors.cardBorder,
   },
@@ -1262,6 +1170,41 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   cornerButtonActive: {
     backgroundColor: colors.accent,
+  },
+  cardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  walletRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: 14,
+  },
+  walletRowLabel: {
+    flex: 1,
+    color: colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  walletRowAmount: {
+    color: colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  walletDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: -6,
+    paddingLeft: 28,
+  },
+  walletDetailsLabel: {
+    color: colors.textSecondary,
+    fontSize: 13,
   },
   calendarTitle: {
     color: colors.textPrimary,
