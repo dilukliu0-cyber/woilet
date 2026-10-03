@@ -16,9 +16,11 @@
       "bundleIdentifier": "com.dilukliu0.wailet",
       "appleTeamId": "RH67B2MANC",
       "entitlements": {
-        "com.apple.security.application-groups": ["group.com.dilukliu0.wailet"]
+        "com.apple.security.application-groups": [
+          "group.com.dilukliu0.wailet"
+        ]
       },
-      "buildNumber": "3",
+      "buildNumber": "5",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSSupportsLiveActivities": true
