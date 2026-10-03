@@ -155,6 +155,7 @@ async function processInBackground(
     throw new Error(error ?? 'empty result');
   }
 
+  recognized.currency = normalizeCurrency(recognized.currency, baseCurrency);
   let status = recognized.items.some((item) => item.needsReview) ? 'needs_review' : 'recognized';
   const warnings = [...recognized.warnings];
 
@@ -169,7 +170,11 @@ async function processInBackground(
   // НЕ удаляем: ложное срабатывание молча уничтожило бы чек. Помечаем — и
   // решает пользователь.
   const receiptHash = computeHash(recognized);
-  const duplicate = await findDuplicate(userId, receiptHash, receiptId);
+  // Пустой результат (не чек на фото, ничего не распознано) не сверяем:
+  // у всех таких отпечаток одинаковый — пустой магазин и сумма 0, — и
+  // каждый следующий помечался бы дублем предыдущего.
+  const isEmpty = recognized.items.length === 0 && !recognized.totalAmount;
+  const duplicate = isEmpty ? null : await findDuplicate(userId, receiptHash, receiptId);
   if (duplicate) {
     warnings.push(
       translate('svc_warn_duplicate', {
@@ -266,6 +271,28 @@ async function processInBackground(
   } else {
     show(store ? translate('svc_receipt_done_store', { store }) : translate('svc_receipt_done'));
   }
+}
+
+// Модель иногда пишет валюту символом с чека («Kč», «€») вместо кода ISO.
+// Тогда «Kč» не совпадало с основной «CZK», курс для несуществующей валюты
+// не находился, и почти каждый чек получал предупреждение «курс недоступен».
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  'KČ': 'CZK', 'KC': 'CZK', 'КЧ': 'CZK',
+  '€': 'EUR', 'EURO': 'EUR',
+  '$': 'USD', 'US$': 'USD',
+  '£': 'GBP',
+  'ZŁ': 'PLN', 'ZL': 'PLN',
+  '₴': 'UAH', 'ГРН': 'UAH',
+  '₽': 'RUB', 'РУБ': 'RUB',
+  'FT': 'HUF',
+  'CHF': 'CHF',
+};
+
+function normalizeCurrency(raw: string | null | undefined, fallback: string): string {
+  const value = (raw ?? '').trim().replace(/\.$/, '').toUpperCase();
+  if (!value) return fallback;
+  if (/^[A-Z]{3}$/.test(value)) return value;
+  return CURRENCY_SYMBOLS[value] ?? fallback;
 }
 
 async function fetchRate(from: string, to: string): Promise<number | null> {
