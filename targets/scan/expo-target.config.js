@@ -13,4 +13,9 @@ module.exports = {
   // отрезало бы часть таких телефонов без всякой пользы.
   deploymentTarget: '16.2',
   frameworks: ['SwiftUI', 'WidgetKit', 'ActivityKit'],
+  // Общее хранилище с приложением: оттуда виджеты читают сводку трат
+  // (src/services/widgets/widgetSnapshot.ts). Группа та же, что в app.json.
+  entitlements: {
+    'com.apple.security.application-groups': ['group.com.dilukliu0.wailet'],
+  },
 };

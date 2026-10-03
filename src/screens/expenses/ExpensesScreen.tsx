@@ -41,6 +41,8 @@ import {
 } from 'react-native';
 import { WeeklySpendingChart } from '../../components/charts/WeeklySpendingChart';
 import { WheelSelector } from '../../components/ui/WheelSelector';
+import { buildWidgetSnapshot, publishWidgetSnapshot } from '../../services/widgets/widgetSnapshot';
+import { useLimitsStore } from '../../store/limitsStore';
 import { ReceiptListItem } from '../../components/cards/ReceiptListItem';
 import { LimitsScreen } from '../limits/LimitsScreen';
 import { AnimatedNumber } from '../../components/ui/AnimatedNumber';
@@ -502,6 +504,27 @@ export function ExpensesScreen() {
 
   const hasFamilyReceipts = receipts.some((r) => r.user_id !== userId);
   const visibleReceipts = showOnlyMine ? receipts.filter((r) => r.user_id === userId) : receipts;
+
+  // Сводка для виджетов iOS. Только свои чеки: виджет про «мои траты» и мой
+  // бюджет, а семейные чеки на главном экране могут быть включены.
+  // Бюджет — сумма лимитов, поэтому лимиты подгружаем и здесь: раньше их
+  // загружал только экран лимитов.
+  const limits = useLimitsStore((state) => state.limits);
+  useEffect(() => {
+    if (userId) useLimitsStore.getState().fetch(userId);
+  }, [userId]);
+  useEffect(() => {
+    if (!userId) return;
+    publishWidgetSnapshot(
+      buildWidgetSnapshot({
+        receipts: receipts.filter((r) => r.user_id === userId),
+        currency: walletBalance?.currency || settings?.currency || 'CZK',
+        wallet: walletBalance?.balance ?? 0,
+        weekdayLabels: WEEKDAYS,
+      }),
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [receipts, walletBalance, limits, locale, settings?.currency, userId]);
   const myAvatar = avatarUrl(settings?.avatar_path ?? null, settings?.updated_at);
 
   const receiptEntries: FeedEntry[] = visibleReceipts.map((r) => ({

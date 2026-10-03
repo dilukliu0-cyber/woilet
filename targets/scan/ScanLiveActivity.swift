@@ -12,6 +12,9 @@ import WidgetKit
 struct ScanActivityBundle: WidgetBundle {
   var body: some Widget {
     ScanLiveActivity()
+    BudgetWidget()
+    ScanWidget()
+    WeekWidget()
   }
 }
 
