@@ -459,21 +459,32 @@ export function ExpensesScreen() {
     if (i === CARD_VIEWS.indexOf(cardViewRef.current)) setPagerHeight(h);
   }
 
+  // Экраны — грани кубика: страница поворачивается вокруг ребра, общего с
+  // соседней, и при свайпе видно, как выходит следующая сторона.
   function pageStyle(i: number) {
-    const inputRange = [i - 1, i, i + 1];
+    const half = pageWidth / 2;
+    const p = Animated.subtract(pageProgress, i);
+    const pivot = p.interpolate({
+      inputRange: [-1, -0.0001, 0.0001, 1],
+      outputRange: [-half, -half, half, half],
+      extrapolate: 'clamp',
+    });
     return {
       width: pageWidth,
       alignSelf: 'flex-start' as const,
-      opacity: pageProgress.interpolate({ inputRange, outputRange: [0.35, 1, 0.35], extrapolate: 'clamp' }),
+      backfaceVisibility: 'hidden' as const,
+      opacity: p.interpolate({ inputRange: [-1, 0, 1], outputRange: [0.5, 1, 0.5], extrapolate: 'clamp' }),
       transform: [
-        { perspective: 1000 },
+        { perspective: pageWidth * 2.2 },
+        { translateX: pivot },
         {
-          rotateY: pageProgress.interpolate({
-            inputRange,
-            outputRange: ['40deg', '0deg', '-40deg'],
+          rotateY: p.interpolate({
+            inputRange: [-1, 0, 1],
+            outputRange: ['90deg', '0deg', '-90deg'],
             extrapolate: 'clamp',
           }),
         },
+        { translateX: Animated.multiply(pivot, -1) },
       ],
     };
   }
