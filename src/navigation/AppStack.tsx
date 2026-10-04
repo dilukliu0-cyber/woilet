@@ -13,6 +13,7 @@ import { ProfileScreen } from '../screens/profile/ProfileScreen';
 import { ReceiptDetailScreen } from '../screens/receiptDetail/ReceiptDetailScreen';
 import { ScanScreen } from '../screens/scan/ScanScreen';
 import { SubscriptionScreen } from '../screens/subscription/SubscriptionScreen';
+import { TrashScreen } from '../screens/trash/TrashScreen';
 import type { AppStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -28,6 +29,7 @@ export function AppStack() {
       <Stack.Screen name="Product" component={ProductScreen} />
       <Stack.Screen name="Category" component={CategoryDetailScreen} />
       <Stack.Screen name="Family" component={FamilyScreen} />
+      <Stack.Screen name="Trash" component={TrashScreen} />
       <Stack.Screen name="AddIncome" component={AddIncomeScreen} />
       <Stack.Screen name="IntroPreview" component={IntroPreviewScreen} options={{ animation: 'fade' }} />
       <Stack.Screen name="Profile" component={ProfileScreen} />

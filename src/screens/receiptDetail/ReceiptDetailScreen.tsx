@@ -11,7 +11,8 @@ import { MiniReceiptThumb } from '../../components/receipt/MiniReceiptThumb';
 import { useT } from '../../i18n/useT';
 import { translateCategoryName, type TranslationKey } from '../../i18n/translations';
 import type { AppStackParamList } from '../../navigation/types';
-import { deleteReceipt, deleteReceiptItem, updateReceiptItem } from '../../services/receipts/receiptsService';
+import { deleteReceiptItem, updateReceiptItem } from '../../services/receipts/receiptsService';
+import { moveReceiptToTrash } from '../../services/receipts/trashService';
 import { rescanReceipt } from '../../services/receipts/backgroundScan';
 import { getReceiptImageUrl } from '../../services/receipts/receiptImage';
 import { supabase } from '../../services/api/supabaseClient';
@@ -135,7 +136,7 @@ export function ReceiptDetailScreen({ route, navigation }: Props) {
   async function handleDeleteReceipt() {
     if (!receipt) return;
     setSaving(true);
-    const error = await deleteReceipt(receipt.id, receipt.image_path);
+    const error = await moveReceiptToTrash(receipt.id);
     setSaving(false);
     if (error) {
       Alert.alert(t('expenses_delete_receipt_failed'), error);

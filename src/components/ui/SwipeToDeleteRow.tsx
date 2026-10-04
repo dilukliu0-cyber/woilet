@@ -1,21 +1,27 @@
 import * as Haptics from 'expo-haptics';
 import { Trash2 } from 'lucide-react-native';
 import { useRef, useState, type ReactNode } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   PanGestureHandler,
   State,
   type PanGestureHandlerGestureEvent,
   type PanGestureHandlerStateChangeEvent,
 } from 'react-native-gesture-handler';
+import { useT } from '../../i18n/useT';
 import { colors } from '../../theme/colors';
+import { themedStyles } from '../../theme/themedStyles';
 
 // Оттянуть влево дальше этого порога и отпустить — чек удаляется сразу,
 // без отдельного тапа по корзинке и без диалога: сам факт того, что чек
 // решительно оттянули далеко (а не задели пальцем при скролле — это
 // отсекают failOffsetY/activeOffsetX ниже), и есть осознанное действие.
-const COMMIT_THRESHOLD = -130;
-const MAX_DRAG = -260;
+const COMMIT_THRESHOLD = -170;
+const MAX_DRAG = -300;
+// Короткий свайп не удаляет, а открывает красную кнопку «Удалить» шириной
+// OPEN_WIDTH: её видно и можно нажать — иначе непонятно, что там спрятано.
+const OPEN_WIDTH = -92;
+const OPEN_SNAP = -46;
 
 type Props = {
   children: ReactNode;
@@ -24,7 +30,13 @@ type Props = {
 };
 
 export function SwipeToDeleteRow({ children, onDelete, style }: Props) {
-  const translateX = useRef(new Animated.Value(0)).current;
+  const t = useT();
+  // Положение = сохранённое смещение (строка открыта или закрыта) + текущий
+  // жест. После отпускания жест вливается в смещение.
+  const offset = useRef(new Animated.Value(0)).current;
+  const dragX = useRef(new Animated.Value(0)).current;
+  const translateX = useRef(Animated.add(offset, dragX)).current;
+  const openRef = useRef(false);
   const heightAnim = useRef(new Animated.Value(0)).current;
   const measuredHeight = useRef(0);
   const [splitting, setSplitting] = useState(false);
@@ -37,17 +49,26 @@ export function SwipeToDeleteRow({ children, onDelete, style }: Props) {
   const splitOpacity = useRef(new Animated.Value(1)).current;
 
   const onGestureEvent = Animated.event<PanGestureHandlerGestureEvent>(
-    [{ nativeEvent: { translationX: translateX } }],
+    [{ nativeEvent: { translationX: dragX } }],
     { useNativeDriver: true },
   );
 
   function onHandlerStateChange(event: PanGestureHandlerStateChangeEvent) {
     if (event.nativeEvent.oldState !== State.ACTIVE) return;
-    if (event.nativeEvent.translationX < COMMIT_THRESHOLD) {
+    const start = openRef.current ? OPEN_WIDTH : 0;
+    const final = start + event.nativeEvent.translationX;
+    offset.setValue(final);
+    dragX.setValue(0);
+    if (final < COMMIT_THRESHOLD) {
       commitDelete();
       return;
     }
-    Animated.spring(translateX, { toValue: 0, useNativeDriver: true, bounciness: 6 }).start();
+    openRef.current = final < OPEN_SNAP;
+    Animated.spring(offset, {
+      toValue: openRef.current ? OPEN_WIDTH : 0,
+      useNativeDriver: true,
+      bounciness: 6,
+    }).start();
   }
 
   function commitDelete() {
@@ -55,7 +76,7 @@ export function SwipeToDeleteRow({ children, onDelete, style }: Props) {
     heightAnim.setValue(measuredHeight.current);
     setSplitting(true);
     Animated.parallel([
-      Animated.timing(translateX, { toValue: -400, duration: 260, useNativeDriver: true }),
+      Animated.timing(offset, { toValue: -400, duration: 260, useNativeDriver: true }),
       Animated.timing(topShift, { toValue: -36, duration: 260, useNativeDriver: true }),
       Animated.timing(bottomShift, { toValue: 36, duration: 260, useNativeDriver: true }),
       Animated.timing(splitOpacity, { toValue: 0, duration: 220, useNativeDriver: true }),
@@ -69,13 +90,13 @@ export function SwipeToDeleteRow({ children, onDelete, style }: Props) {
     extrapolate: 'clamp',
   });
   const iconOpacity = translateX.interpolate({
-    inputRange: [-70, -20, 0],
-    outputRange: [1, 0.3, 0],
+    inputRange: [-50, -16, 0],
+    outputRange: [1, 0.5, 0],
     extrapolate: 'clamp',
   });
   const iconScale = translateX.interpolate({
-    inputRange: [COMMIT_THRESHOLD, -70, 0],
-    outputRange: [1.15, 0.85, 0.7],
+    inputRange: [COMMIT_THRESHOLD, OPEN_WIDTH, 0],
+    outputRange: [1.2, 1, 0.8],
     extrapolate: 'clamp',
   });
 
@@ -90,9 +111,14 @@ export function SwipeToDeleteRow({ children, onDelete, style }: Props) {
     >
       <View style={[styles.wrapper, splitting ? styles.wrapperSplitting : styles.wrapperClipped, style]}>
         <View style={styles.actionsBackdrop}>
-          <Animated.View style={{ opacity: iconOpacity, transform: [{ scale: iconScale }] }}>
-            <Trash2 color="#fff" size={22} />
-          </Animated.View>
+          <Pressable style={styles.deleteButton} onPress={commitDelete} hitSlop={6}>
+            <Animated.View style={{ alignItems: 'center', opacity: iconOpacity, transform: [{ scale: iconScale }] }}>
+              <Trash2 color={colors.background} size={24} />
+              <Text style={styles.deleteLabel} numberOfLines={1}>
+                {t('common_delete')}
+              </Text>
+            </Animated.View>
+          </Pressable>
         </View>
 
         {splitting ? (
@@ -127,7 +153,7 @@ export function SwipeToDeleteRow({ children, onDelete, style }: Props) {
           <PanGestureHandler
             onGestureEvent={onGestureEvent}
             onHandlerStateChange={onHandlerStateChange}
-            activeOffsetX={[-14, 1000]}
+            activeOffsetX={[-14, 14]}
             failOffsetY={[-8, 8]}
           >
             <Animated.View style={{ width: '100%', transform: [{ translateX: clampedTranslateX }] }}>
@@ -140,7 +166,7 @@ export function SwipeToDeleteRow({ children, onDelete, style }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => StyleSheet.create({
   wrapper: {
     position: 'relative',
     width: '100%',
@@ -167,10 +193,21 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     borderRadius: 16,
-    backgroundColor: colors.error,
+    backgroundColor: colors.textPrimary,
     alignItems: 'flex-end',
     justifyContent: 'center',
-    paddingRight: 26,
+  },
+  deleteButton: {
+    width: -OPEN_WIDTH,
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteLabel: {
+    color: colors.background,
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 2,
   },
   splitPiece: {
     position: 'absolute',
@@ -180,4 +217,4 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     width: '100%',
   },
-});
+}));

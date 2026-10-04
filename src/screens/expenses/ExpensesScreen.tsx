@@ -40,6 +40,7 @@ import {
 } from 'react-native';
 import { WeeklySpendingChart } from '../../components/charts/WeeklySpendingChart';
 import { WheelSelector } from '../../components/ui/WheelSelector';
+import { formatMoney } from '../../utils/formatMoney';
 import { WalletPanel } from '../../components/wallet/WalletPanel';
 import { buildWidgetSnapshot, publishWidgetSnapshot } from '../../services/widgets/widgetSnapshot';
 import { useLimitsStore } from '../../store/limitsStore';
@@ -61,7 +62,7 @@ import {
 import { getQueue, removeFromQueue, type QueuedScan } from '../../services/offlineQueue/offlineQueue';
 import { avatarUrl } from '../../services/profile/avatarService';
 import { rescanReceipt, submitScan } from '../../services/receipts/backgroundScan';
-import { deleteReceipt } from '../../services/receipts/receiptsService';
+import { moveReceiptToTrash } from '../../services/receipts/trashService';
 import { deleteIncome, fetchIncomes, fetchWalletBalance } from '../../services/wallet/walletService';
 import { useAuthStore } from '../../store/authStore';
 import { useLocaleStore } from '../../store/localeStore';
@@ -305,6 +306,7 @@ export function ExpensesScreen() {
         : []),
       { icon: LayoutGrid, label: t('expenses_menu_categories'), onPress: () => rootNav()?.navigate('Categories') },
       { icon: Users, label: t('expenses_menu_family'), onPress: () => rootNav()?.navigate('Family') },
+      { icon: Trash2, label: t('trash_title'), onPress: () => rootNav()?.navigate('Trash') },
       { icon: LogOut, label: t('expenses_menu_logout'), onPress: () => signOut(), destructive: true },
     ];
   }
@@ -506,7 +508,7 @@ export function ExpensesScreen() {
   // Сюда попадаем только когда SwipeToDeleteRow зафиксировал решительный
   // свайп влево (COMMIT_THRESHOLD) — сам жест и есть подтверждение.
   async function performDelete(receipt: ReceiptRecord) {
-    const error = await deleteReceipt(receipt.id, receipt.image_path);
+    const error = await moveReceiptToTrash(receipt.id);
     if (error) {
       Alert.alert(t('expenses_delete_receipt_failed'), error);
       return;
@@ -711,7 +713,7 @@ export function ExpensesScreen() {
                     </Text>
                   </View>
                   <Text style={styles.incomeAmount}>
-                    +{item.income.amount.toFixed(0)} {item.income.currency}
+                    +{formatMoney(item.income.amount)} {item.income.currency}
                   </Text>
                 </Pressable>
                 </SwipeToDeleteRow>
@@ -981,7 +983,7 @@ export function ExpensesScreen() {
                     <Text style={styles.walletRowLabel}>{t('expenses_wallet')}</Text>
                     <AnimatedNumber
                       value={walletBalance?.balance ?? 0}
-                      formatter={(n) => `${n.toFixed(0)} ${walletBalance?.currency || categoryCurrency}`}
+                      formatter={(n) => `${formatMoney(n)} ${walletBalance?.currency || categoryCurrency}`}
                       style={styles.walletRowAmount}
                     />
                     <ChevronRight color={colors.textSecondary} size={16} />

@@ -20,6 +20,7 @@ export type AppStackParamList = {
   Product: { productName: string };
   Category: { categoryName: string };
   Family: undefined;
+  Trash: undefined;
   AddIncome: undefined;
   IntroPreview: undefined;
   Profile: undefined;

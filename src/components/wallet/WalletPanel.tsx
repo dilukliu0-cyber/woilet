@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useT } from '../../i18n/useT';
 import { colors } from '../../theme/colors';
 import { themedStyles } from '../../theme/themedStyles';
+import { formatMoney } from '../../utils/formatMoney';
 
 // Экран кошелька (четвёртый пункт колеса над карточкой): баланс и сумма
 // всех пополнений. Сами пополнения — списком под карточкой, со свайпом
@@ -20,10 +21,10 @@ export function WalletPanel({
     <View>
       <Text style={styles.caption}>{t('expenses_wallet_balance')}</Text>
       <Text style={styles.balance}>
-        {balance.toFixed(0)} {currency}
+        {formatMoney(balance)} {currency}
       </Text>
       <Text style={styles.caption}>
-        {t('expenses_topups_history')} +{totalIncome.toFixed(0)} {currency}
+        {t('expenses_topups_history')} +{formatMoney(totalIncome)} {currency}
       </Text>
     </View>
   );
