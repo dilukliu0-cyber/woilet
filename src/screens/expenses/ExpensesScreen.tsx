@@ -1,9 +1,6 @@
-import * as Haptics from 'expo-haptics';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
-  CalendarDays,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   CloudUpload,
@@ -32,7 +29,6 @@ import {
   Image,
   LayoutAnimation,
   Modal,
-  PanResponder,
   InteractionManager,
   Platform,
   Pressable,
@@ -160,83 +156,10 @@ export function ExpensesScreen() {
   const cardViewRef = useRef<CardView>('month');
   // На экране кошелька список под карточкой показывает пополнения вместо чеков.
   const walletMode = cardView === 'wallet';
-  const switchingCard = useRef(false);
-  const contentOpacity = useRef(new Animated.Value(1)).current;
-  const contentOffset = useRef(new Animated.Value(0)).current;
-  const pointerStart = useRef<{ x: number; y: number } | null>(null);
-  const cardSwipeHandled = useRef(false);
-  const calendarPointerStart = useRef<{ x: number; y: number } | null>(null);
-  const calendarSwipeHandled = useRef(false);
   const calendarAnimating = useRef(false);
   const calendarContentOpacity = useRef(new Animated.Value(1)).current;
   const calendarContentOffset = useRef(new Animated.Value(0)).current;
   const headerScroll = useRef(new Animated.Value(0)).current;
-
-  const switchCardView = useCallback((next: CardView) => {
-    if (cardViewRef.current === next || switchingCard.current) return;
-    switchingCard.current = true;
-    haptics.selection();
-    // Сдвиг в сторону того сегмента, куда уходим: содержимое «едет» вслед
-    // за плашкой переключателя, а не просто мигает.
-    const direction = CARD_VIEWS.indexOf(next) > CARD_VIEWS.indexOf(cardViewRef.current) ? -1 : 1;
-    Animated.parallel([
-      Animated.timing(contentOpacity, { toValue: 0, duration: 130, useNativeDriver: true }),
-      Animated.timing(contentOffset, {
-        toValue: direction * 24,
-        duration: 150,
-        easing: Easing.in(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start(({ finished }) => {
-      if (!finished) {
-        switchingCard.current = false;
-        return;
-      }
-      contentOffset.setValue(-direction * 24);
-      cardViewRef.current = next;
-      // Высота карточки у видов разная: пусть меняется плавно, а не рывком.
-      animateNextLayout();
-      setCardView(next);
-      // Фильтр по дню живёт только в календаре — уходя из него, снимаем,
-      // иначе список чеков остался бы урезанным без видимой причины.
-      if (next !== 'calendar') setSelectedDay(null);
-      requestAnimationFrame(() => {
-        Animated.parallel([
-          Animated.timing(contentOpacity, {
-            toValue: 1,
-            duration: 230,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: true,
-          }),
-          Animated.timing(contentOffset, {
-            toValue: 0,
-            duration: 230,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: true,
-          }),
-        ]).start(() => { switchingCard.current = false; });
-      });
-    });
-  }, [contentOpacity, contentOffset]);
-
-  const cardSwipe = useMemo(() => PanResponder.create({
-    onMoveShouldSetPanResponderCapture: (_, gesture) =>
-      Math.abs(gesture.dx) > 18 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.3,
-    onMoveShouldSetPanResponder: (_, gesture) =>
-      Math.abs(gesture.dx) > 18 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.3,
-    onPanResponderRelease: (_, gesture) => {
-      if (gesture.dx < -45) stepCardView(1);
-      else if (gesture.dx > 45) stepCardView(-1);
-    },
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [switchCardView]);
-
-  // Свайп по карточке листает виды по порядку сегментов. В календаре
-  // горизонтальный свайп занят — им листаются месяцы.
-  function stepCardView(delta: number) {
-    const next = CARD_VIEWS[CARD_VIEWS.indexOf(cardViewRef.current) + delta];
-    if (next) switchCardView(next);
-  }
 
   // Лимиты открываются не отдельным экраном, а разворотом карточки
   // расходов на весь экран поверх этого же экрана (см. рендер overlay
@@ -325,20 +248,6 @@ export function ExpensesScreen() {
       });
     });
   }
-
-  const calendarSwipe = useMemo(() => PanResponder.create({
-    onMoveShouldSetPanResponderCapture: (_, gesture) =>
-      Math.abs(gesture.dx) > 18 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.3,
-    onMoveShouldSetPanResponder: (_, gesture) =>
-      Math.abs(gesture.dx) > 18 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.3,
-    onPanResponderRelease: (_, gesture) => {
-      if (calendarSwipeHandled.current) return;
-      if (Math.abs(gesture.dx) > 45 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.3) {
-        calendarSwipeHandled.current = true;
-        animateCalMonth(gesture.dx < 0 ? 1 : -1);
-      }
-    },
-  }), [calYear, calMonth]);
 
   function loadCategories() {
     if (!userId) return;
@@ -552,49 +461,6 @@ export function ExpensesScreen() {
     goToPage(index);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageWidth]);
-
-  // Свайпы мышью/пером на вебе: PanResponder там срабатывает не всегда.
-  function handlePointerDown(x: number, y: number) {
-    cardSwipeHandled.current = false;
-    calendarSwipeHandled.current = false;
-    pointerStart.current = { x, y };
-  }
-
-  function handlePointerUp(x: number, y: number) {
-    if (!pointerStart.current) return;
-    const dx = x - pointerStart.current.x;
-    const dy = y - pointerStart.current.y;
-    pointerStart.current = null;
-    if (Math.abs(dx) <= 45 || Math.abs(dx) <= Math.abs(dy) * 1.3) return;
-    if (cardViewRef.current === 'calendar') {
-      if (calendarSwipeHandled.current) return;
-      calendarSwipeHandled.current = true;
-      animateCalMonth(dx < 0 ? 1 : -1);
-    } else {
-      if (cardSwipeHandled.current) return;
-      cardSwipeHandled.current = true;
-      stepCardView(dx < 0 ? 1 : -1);
-    }
-  }
-
-  function handleIncomeLongPress(income: IncomeRecord) {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert(t('expenses_delete_income_title'), t('expenses_delete_income_body'), [
-      { text: t('common_cancel'), style: 'cancel' },
-      {
-        text: t('common_delete'),
-        style: 'destructive',
-        onPress: async () => {
-          const error = await deleteIncome(income.id);
-          if (error) {
-            Alert.alert(t('expenses_delete_income_failed'), error);
-            return;
-          }
-          loadWallet();
-        },
-      },
-    ]);
-  }
 
   async function sendQueuedScan(scan: QueuedScan) {
     if (!userId || sendingQueueId) return;
@@ -992,7 +858,6 @@ export function ExpensesScreen() {
                               key={entry.categoryName}
                               style={styles.legendRow}
                               onPress={() => {
-                                if (cardSwipeHandled.current) return;
                                 rootNav()?.navigate('Category', { categoryName: entry.categoryName });
                               }}
                             >
@@ -1061,7 +926,6 @@ export function ExpensesScreen() {
                                   <Pressable
                                     disabled={total === undefined}
                                     onPress={() => {
-                                      if (calendarSwipeHandled.current) return;
                                       haptics.selection();
                                       setSelectedDay((prev) => (prev === day ? null : day));
                                     }}
@@ -1102,10 +966,6 @@ export function ExpensesScreen() {
                           balance={walletBalance?.balance ?? 0}
                           totalIncome={walletBalance?.totalIncome ?? 0}
                           currency={walletBalance?.currency || categoryCurrency}
-                          incomes={incomes}
-                          intlLocale={intlLocale}
-                          onDelete={removeIncome}
-                          onAdd={() => rootNav()?.navigate('AddIncome')}
                         />
                       </Animated.View>
                     </Animated.ScrollView>
