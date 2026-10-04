@@ -21,6 +21,10 @@ struct WidgetSnapshot: Codable {
     var today: String
     var scan: String
     var empty: String
+    // Новые поля — необязательные: старая сводка без них должна читаться.
+    var walletLeft: String?
+    var perDay: String?
+    var until: String?
   }
 
   var currency: String
@@ -207,6 +211,63 @@ struct ScanWidget: Widget {
     }
     .configurationDisplayName("Wailet Scan")
     .description("One tap to scan a receipt")
+    .supportedFamilies([.systemSmall])
+  }
+}
+
+// MARK: - Кошелёк
+
+struct WalletWidgetView: View {
+  let entry: SnapshotEntry
+
+  /// Остаток делим на дни до конца месяца, включая сегодня.
+  private var daysLeft: Int {
+    let cal = Calendar.current
+    let now = Date()
+    let range = cal.range(of: .day, in: .month, for: now)?.count ?? 30
+    return max(range - cal.component(.day, from: now) + 1, 1)
+  }
+
+  var body: some View {
+    let s = entry.snapshot
+    let wallet = s?.wallet ?? 0
+    let perDay = max(wallet, 0) / Double(daysLeft)
+    VStack(alignment: .leading, spacing: 2) {
+      Text(s?.labels.wallet ?? "Wallet")
+        .font(.caption)
+        .foregroundStyle(.black.opacity(0.55))
+      Text(amount(wallet))
+        .font(.system(size: 30, weight: .bold))
+        .minimumScaleFactor(0.6)
+        .lineLimit(1)
+      Text("\(s?.currency ?? "") \(s?.labels.walletLeft ?? "")")
+        .font(.caption2)
+        .foregroundStyle(.black.opacity(0.55))
+      Spacer(minLength: 0)
+      if let s {
+        Text((s.labels.perDay ?? "≈ {amount}").replacingOccurrences(of: "{amount}", with: "\(amount(perDay)) \(s.currency)"))
+          .font(.system(size: 13, weight: .semibold))
+          .lineLimit(1)
+          .minimumScaleFactor(0.7)
+        Text(s.labels.until ?? "")
+          .font(.caption2)
+          .foregroundStyle(.black.opacity(0.55))
+      }
+    }
+    .foregroundStyle(.black)
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+    .widgetBackground(.white)
+  }
+}
+
+struct WalletWidget: Widget {
+  var body: some WidgetConfiguration {
+    StaticConfiguration(kind: "WailetWallet", provider: SnapshotProvider()) { entry in
+      WalletWidgetView(entry: entry)
+        .widgetURL(URL(string: "wailet://"))
+    }
+    .configurationDisplayName("Wailet Wallet")
+    .description("Wallet balance and daily allowance")
     .supportedFamilies([.systemSmall])
   }
 }

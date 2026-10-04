@@ -44,6 +44,9 @@ export type WidgetSnapshot = {
     today: string;
     scan: string;
     empty: string;
+    walletLeft: string;
+    perDay: string;
+    until: string;
   };
   updatedAt: number;
 };
@@ -116,6 +119,13 @@ export function buildWidgetSnapshot(input: {
       today: translate('widget_today'),
       scan: translate('widget_scan'),
       empty: translate('widget_empty'),
+      walletLeft: translate('widget_wallet_left'),
+      perDay: translate('widget_per_day'),
+      until: translate('widget_until', {
+        date: new Intl.DateTimeFormat(intlLocale, { day: 'numeric', month: 'long' }).format(
+          new Date(now.getFullYear(), now.getMonth() + 1, 0),
+        ),
+      }),
     },
     updatedAt: Date.now(),
   };

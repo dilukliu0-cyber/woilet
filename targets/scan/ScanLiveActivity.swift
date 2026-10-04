@@ -15,6 +15,7 @@ struct ScanActivityBundle: WidgetBundle {
     BudgetWidget()
     ScanWidget()
     WeekWidget()
+    WalletWidget()
   }
 }
 
