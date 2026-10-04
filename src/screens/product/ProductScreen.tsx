@@ -1,7 +1,9 @@
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { CATEGORY_NAMES } from '../../utils/categoryIconMap';
+import { deleteReceiptItem } from '../../services/receipts/receiptsService';
 import { Sparkline } from '../../components/charts/Sparkline';
 import { CategoryIcon } from '../../components/ui/CategoryIcon';
 import { FadeInView } from '../../components/ui/FadeInView';
@@ -19,6 +21,7 @@ import { productKey } from '../../utils/productKey';
 import { formatTotals } from '../../utils/measure';
 
 type PurchaseRow = {
+  id: string;
   cleaned_name: string;
   price: number;
   quantity: number;
@@ -50,6 +53,8 @@ export function ProductScreen({ route, navigation }: Props) {
   // useFocusEffect, а не useEffect — та же причина, что в CategoryDetailScreen:
   // без него список покупок не подхватывал только что отсканированный чек,
   // если экран уже был в стеке для того же товара.
+  const [reloadTick, setReloadTick] = useState(0);
+  const reload = () => setReloadTick((n) => n + 1);
   useFocusEffect(
     useCallback(() => {
       async function load() {
@@ -62,7 +67,7 @@ export function ProductScreen({ route, navigation }: Props) {
         const { data } = await supabase
           .from('receipt_items')
           .select(
-            'cleaned_name, price, quantity, weight_value, weight_unit, category_name, receipt:receipts(store_name, purchase_date, created_at, exchange_rate, base_currency, currency)',
+            'id, cleaned_name, price, quantity, weight_value, weight_unit, category_name, receipt:receipts(store_name, purchase_date, created_at, exchange_rate, base_currency, currency)',
           )
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
@@ -75,7 +80,7 @@ export function ProductScreen({ route, navigation }: Props) {
         setLoading(false);
       }
       load();
-    }, [userId, productName]),
+    }, [userId, productName, reloadTick]),
   );
 
   const derived = useMemo(() => {
@@ -83,7 +88,11 @@ export function ProductScreen({ route, navigation }: Props) {
     const category = purchases[0]?.category_name ?? 'Другое';
     const basePrices = purchases.map((p) => p.price * (p.receipt?.exchange_rate ?? 1));
     const totalSpent = basePrices.reduce((s, v) => s + v, 0);
-    const avgPrice = purchases.length > 0 ? totalSpent / purchases.length : 0;
+    // Цена в строке — за всю строку («3 × 24.90» = 74.70). Средняя и график
+    // раньше считались по ней и завышались на каждой покупке нескольких
+    // штук; считаем за одну штуку.
+    const totalQty = purchases.reduce((s, p) => s + (p.quantity > 0 ? p.quantity : 1), 0);
+    const avgPrice = totalQty > 0 ? totalSpent / totalQty : 0;
     // Складывать weight_value как есть нельзя: единицы в базе разные
     // («г» и «кг», «л» и «L»), а подпись бралась из первой покупки —
     // 665 г и 0.4 кг превращались в «665.4 кг».
@@ -106,14 +115,79 @@ export function ProductScreen({ route, navigation }: Props) {
 
     const chronological = purchases
       .map((p, i) => ({
+        id: p.id,
+        row: p,
         date: p.receipt?.purchase_date ?? p.receipt?.created_at.slice(0, 10) ?? '',
         store: p.receipt?.store_name ?? t('product_no_store'),
         price: basePrices[i],
+        unitPrice: basePrices[i] / (p.quantity > 0 ? p.quantity : 1),
+        quantity: p.quantity,
       }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
     return { currency, category, totalSpent, avgPrice, totalMeasure, stores, chronological };
   }, [purchases, unitLabels.g]);
+
+  // --- Редактор товара: название и категория сразу во всех его покупках ---
+  const [productEditOpen, setProductEditOpen] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  function openProductEdit() {
+    setEditName(productName);
+    setEditCategory(purchases[0]?.category_name ?? 'Другое');
+    setProductEditOpen(true);
+  }
+  async function saveProduct() {
+    const name = editName.trim();
+    if (!name || purchases.length === 0) return;
+    await supabase
+      .from('receipt_items')
+      .update({ cleaned_name: name, category_name: editCategory })
+      .in('id', purchases.map((p) => p.id));
+    setProductEditOpen(false);
+    if (name !== productName) navigation.setParams({ productName: name });
+    else reload();
+  }
+
+  // --- Редактор одной покупки: цена за строку, количество, удаление ---
+  const [editingPurchase, setEditingPurchase] = useState<PurchaseRow | null>(null);
+  const [editPrice, setEditPrice] = useState('');
+  const [editQty, setEditQty] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  function openPurchaseEdit(row: PurchaseRow) {
+    setEditingPurchase(row);
+    setEditPrice(String(row.price));
+    setEditQty(String(row.quantity || 1));
+    setConfirmDelete(false);
+  }
+  async function savePurchase() {
+    if (!editingPurchase) return;
+    const price = Number(editPrice.replace(',', '.'));
+    const quantity = Number(editQty.replace(',', '.'));
+    const goodPrice = Number.isFinite(price) ? price : editingPurchase.price;
+    const goodQty = Number.isFinite(quantity) && quantity > 0 ? quantity : editingPurchase.quantity || 1;
+    await supabase
+      .from('receipt_items')
+      .update({
+        price: goodPrice,
+        quantity: goodQty,
+        unit_price: Math.round((goodPrice / goodQty) * 100) / 100,
+      })
+      .eq('id', editingPurchase.id);
+    setEditingPurchase(null);
+    reload();
+  }
+  async function removePurchase() {
+    if (!editingPurchase) return;
+    // Подтверждение вторым нажатием: системное окно в вебе не работает.
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    await deleteReceiptItem(editingPurchase.id);
+    setEditingPurchase(null);
+    reload();
+  }
 
   if (loading) {
     return (
@@ -124,11 +198,19 @@ export function ProductScreen({ route, navigation }: Props) {
   }
 
   const { currency, category, totalSpent, avgPrice, totalMeasure, stores, chronological } = derived;
-  const priceSeries = chronological.map((h) => h.price);
+  const priceSeries = chronological.map((h) => h.unitPrice);
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title={productName} onBack={() => navigation.goBack()} />
+      <ScreenHeader
+        title={productName}
+        onBack={() => navigation.goBack()}
+        right={
+          <Pressable onPress={() => openProductEdit()} hitSlop={8}>
+            <Text style={styles.headerAction}>{t('receipt_detail_edit')}</Text>
+          </Pressable>
+        }
+      />
 
       <ScrollView contentContainerStyle={styles.content}>
         <FadeInView index={0}>
@@ -191,23 +273,112 @@ export function ProductScreen({ route, navigation }: Props) {
         <Text style={styles.sectionTitle}>{t('product_purchase_history')}</Text>
         <View style={styles.history}>
           {[...chronological].reverse().map((h, i) => (
-            <View key={i} style={styles.historyRow}>
+            <Pressable key={h.id ?? i} style={styles.historyRow} onPress={() => openPurchaseEdit(h.row)}>
               <View>
                 <Text style={styles.historyStore}>{h.store}</Text>
-                <Text style={styles.historyDate}>{h.date}</Text>
+                <Text style={styles.historyDate}>
+                  {h.date}
+                  {h.quantity > 1 ? ` · ${h.quantity} × ${h.unitPrice.toFixed(2)}` : ''}
+                </Text>
               </View>
               <Text style={styles.historyPrice}>
                 {h.price.toFixed(0)} {currency}
               </Text>
-            </View>
+            </Pressable>
           ))}
         </View>
       </ScrollView>
+
+      <Modal visible={productEditOpen} transparent animationType="slide" onRequestClose={() => setProductEditOpen(false)}>
+        <Pressable style={styles.backdrop} onPress={() => setProductEditOpen(false)} />
+        <View style={styles.sheet}>
+          <Text style={styles.sheetTitle}>{t('product_edit_title')}</Text>
+          <Text style={styles.fieldLabel}>{t('product_edit_name')}</Text>
+          <TextInput style={styles.input} value={editName} onChangeText={setEditName} />
+          <Text style={styles.fieldLabel}>{t('product_edit_category')}</Text>
+          <ScrollView style={{ maxHeight: 220 }} contentContainerStyle={styles.chips}>
+            {CATEGORY_NAMES.map((name) => (
+              <Pressable
+                key={name}
+                style={[styles.chip, editCategory === name && styles.chipActive]}
+                onPress={() => setEditCategory(name)}
+              >
+                <Text style={[styles.chipText, editCategory === name && styles.chipTextActive]}>
+                  {translateCategoryName(name, locale)}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+          <Text style={styles.hint}>{t('product_edit_hint', { count: purchases.length })}</Text>
+          <Pressable style={styles.primary} onPress={saveProduct}>
+            <Text style={styles.primaryText}>{t('common_save')}</Text>
+          </Pressable>
+        </View>
+      </Modal>
+
+      <Modal visible={editingPurchase !== null} transparent animationType="slide" onRequestClose={() => setEditingPurchase(null)}>
+        <Pressable style={styles.backdrop} onPress={() => setEditingPurchase(null)} />
+        <View style={styles.sheet}>
+          <Text style={styles.sheetTitle}>
+            {editingPurchase?.receipt?.store_name ?? t('product_no_store')} · {editingPurchase?.receipt?.purchase_date ?? ''}
+          </Text>
+          <Text style={styles.fieldLabel}>{t('product_edit_price')}</Text>
+          <TextInput style={styles.input} value={editPrice} onChangeText={setEditPrice} keyboardType="decimal-pad" />
+          <Text style={styles.fieldLabel}>{t('product_edit_quantity')}</Text>
+          <TextInput style={styles.input} value={editQty} onChangeText={setEditQty} keyboardType="decimal-pad" />
+          <Pressable style={styles.primary} onPress={savePurchase}>
+            <Text style={styles.primaryText}>{t('common_save')}</Text>
+          </Pressable>
+          <Pressable style={[styles.secondary, confirmDelete && styles.secondaryDanger]} onPress={removePurchase}>
+            <Text style={[styles.secondaryText, confirmDelete && styles.primaryText]}>
+              {confirmDelete ? t('product_edit_delete_confirm') : t('common_delete')}
+            </Text>
+          </Pressable>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = themedStyles(() => StyleSheet.create({
+  headerAction: { color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
+  sheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 2,
+    borderColor: colors.cardBorder,
+    padding: 20,
+    paddingBottom: 36,
+    gap: 8,
+  },
+  sheetTitle: { color: colors.textPrimary, fontSize: 18, fontWeight: '800', marginBottom: 4 },
+  fieldLabel: { color: colors.textSecondary, fontSize: 13, marginTop: 6 },
+  input: {
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: colors.textPrimary,
+    fontSize: 16,
+  },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  chip: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
+  chipActive: { backgroundColor: colors.accent },
+  chipText: { color: colors.textPrimary, fontSize: 13, fontWeight: '600' },
+  chipTextActive: { color: colors.background },
+  hint: { color: colors.textSecondary, fontSize: 12, marginTop: 4 },
+  primary: { backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 13, alignItems: 'center', marginTop: 10 },
+  primaryText: { color: colors.background, fontSize: 15, fontWeight: '700' },
+  secondary: { borderWidth: 1.5, borderColor: colors.border, borderRadius: 14, paddingVertical: 12, alignItems: 'center' },
+  secondaryDanger: { backgroundColor: colors.accent },
+  secondaryText: { color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
   container: {
     flex: 1,
     backgroundColor: colors.background,
