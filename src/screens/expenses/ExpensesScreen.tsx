@@ -33,6 +33,7 @@ import {
   LayoutAnimation,
   Modal,
   PanResponder,
+  InteractionManager,
   Platform,
   Pressable,
   RefreshControl,
@@ -449,22 +450,29 @@ export function ExpensesScreen() {
     tickIndex.current = CARD_VIEWS.indexOf(cardViewRef.current);
   }, [pageWidth, pagerX]);
 
+  // Высота ленты — по текущему экрану, а не по самому высокому: иначе под
+  // «Месяцем» оставалась пустота высотой с календарь.
+  const pageHeights = useRef<number[]>([]);
+  const [pagerHeight, setPagerHeight] = useState(0);
+  function onPageLayout(i: number, h: number) {
+    pageHeights.current[i] = h;
+    if (i === CARD_VIEWS.indexOf(cardViewRef.current)) setPagerHeight(h);
+  }
+
   function pageStyle(i: number) {
     const inputRange = [i - 1, i, i + 1];
     return {
       width: pageWidth,
-      opacity: pageProgress.interpolate({ inputRange, outputRange: [0.25, 1, 0.25], extrapolate: 'clamp' }),
+      alignSelf: 'flex-start' as const,
+      opacity: pageProgress.interpolate({ inputRange, outputRange: [0.35, 1, 0.35], extrapolate: 'clamp' }),
       transform: [
-        { perspective: 900 },
+        { perspective: 1000 },
         {
           rotateY: pageProgress.interpolate({
             inputRange,
-            outputRange: ['58deg', '0deg', '-58deg'],
+            outputRange: ['40deg', '0deg', '-40deg'],
             extrapolate: 'clamp',
           }),
-        },
-        {
-          scale: pageProgress.interpolate({ inputRange, outputRange: [0.86, 1, 0.86], extrapolate: 'clamp' }),
         },
       ],
     };
@@ -495,7 +503,11 @@ export function ExpensesScreen() {
     const next = CARD_VIEWS[index];
     if (next === cardViewRef.current) return;
     cardViewRef.current = next;
-    setCardView(next);
+    animateNextLayout();
+    setPagerHeight(pageHeights.current[index] ?? 0);
+    // Тяжёлую перерисовку экрана (список чеков, кошелёк) запускаем после
+    // того, как лента остановилась — иначе она рвала кадры анимации.
+    InteractionManager.runAfterInteractions(() => setCardView(next));
     // Фильтр по дню живёт только в календаре — уходя из него, снимаем,
     // иначе список чеков остался бы урезанным без видимой причины.
     if (next !== 'calendar') setSelectedDay(null);
@@ -926,12 +938,16 @@ export function ExpensesScreen() {
                       поворачиваются как грани барабана, а подписи над
                       карточкой считаются из того же положения — поэтому
                       ничего не может разъехаться. */}
-                  <View onLayout={(e) => setPageWidth(Math.round(e.nativeEvent.layout.width))}>
+                  <View onLayout={(e) => setPageWidth(e.nativeEvent.layout.width)}>
                     {pageWidth > 0 && (
                     <Animated.ScrollView
                       ref={pagerRef}
                       horizontal
                       pagingEnabled
+                      directionalLockEnabled
+                      disableIntervalMomentum
+                      decelerationRate="fast"
+                      style={pagerHeight > 0 ? { height: pagerHeight } : undefined}
                       showsHorizontalScrollIndicator={false}
                       scrollEventThrottle={16}
                       contentOffset={{ x: CARD_VIEWS.indexOf(cardViewRef.current) * pageWidth, y: 0 }}
@@ -941,7 +957,7 @@ export function ExpensesScreen() {
                       })}
                       onMomentumScrollEnd={(e) => settlePager(e.nativeEvent.contentOffset.x)}
                     >
-                      <Animated.View style={pageStyle(0)}>
+                      <Animated.View style={pageStyle(0)} shouldRasterizeIOS renderToHardwareTextureAndroid onLayout={(e) => onPageLayout(0, e.nativeEvent.layout.height)}>
                         <WeeklySpendingChart
                           receipts={visibleReceipts}
                           currency={settings?.currency ?? categoryCurrency ?? 'CZK'}
@@ -950,7 +966,7 @@ export function ExpensesScreen() {
                           embedded
                         />
                       </Animated.View>
-                      <Animated.View style={pageStyle(1)}>
+                      <Animated.View style={pageStyle(1)} shouldRasterizeIOS renderToHardwareTextureAndroid onLayout={(e) => onPageLayout(1, e.nativeEvent.layout.height)}>
                         <View style={styles.barsWrap}>
                           <AnimatedNumber
                             value={monthTotal}
@@ -994,7 +1010,7 @@ export function ExpensesScreen() {
                           </View>
                         )}
                       </Animated.View>
-                      <Animated.View style={pageStyle(2)}>
+                      <Animated.View style={pageStyle(2)} shouldRasterizeIOS renderToHardwareTextureAndroid onLayout={(e) => onPageLayout(2, e.nativeEvent.layout.height)}>
                         <Animated.View style={[styles.calendarContent, {
                           opacity: calendarContentOpacity,
                           transform: [{ translateX: calendarContentOffset }],
@@ -1070,7 +1086,7 @@ export function ExpensesScreen() {
                         </View>
                         </Animated.View>
                       </Animated.View>
-                      <Animated.View style={pageStyle(3)}>
+                      <Animated.View style={pageStyle(3)} shouldRasterizeIOS renderToHardwareTextureAndroid onLayout={(e) => onPageLayout(3, e.nativeEvent.layout.height)}>
                         <WalletPanel
                           balance={walletBalance?.balance ?? 0}
                           totalIncome={walletBalance?.totalIncome ?? 0}
