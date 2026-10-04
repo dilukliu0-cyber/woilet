@@ -43,7 +43,7 @@ import {
 } from 'react-native';
 import { WeeklySpendingChart } from '../../components/charts/WeeklySpendingChart';
 import { WheelSelector } from '../../components/ui/WheelSelector';
-import { WalletSheet } from '../../components/wallet/WalletSheet';
+import { WalletPanel } from '../../components/wallet/WalletPanel';
 import { buildWidgetSnapshot, publishWidgetSnapshot } from '../../services/widgets/widgetSnapshot';
 import { useLimitsStore } from '../../store/limitsStore';
 import { ReceiptListItem } from '../../components/cards/ReceiptListItem';
@@ -111,8 +111,8 @@ function monthLabels(intlLocale: string): string[] {
   );
 }
 
-type CardView = 'week' | 'month' | 'calendar';
-const CARD_VIEWS: CardView[] = ['week', 'month', 'calendar'];
+type CardView = 'week' | 'month' | 'calendar' | 'wallet';
+const CARD_VIEWS: CardView[] = ['week', 'month', 'calendar', 'wallet'];
 
 function animateNextLayout() {
   LayoutAnimation.configureNext(LayoutAnimation.create(260, 'easeInEaseOut', 'opacity'));
@@ -404,13 +404,10 @@ export function ExpensesScreen() {
     fetchIncomes(userId).then(setIncomes);
   }
 
-  // Тап по строке кошелька открывает окно кошелька: там баланс, все
-  // пополнения и удаление каждого (раньше — только скрытым долгим нажатием).
-  const [walletSheetOpen, setWalletSheetOpen] = useState(false);
+  // Тап по строке кошелька докручивает колесо до экрана кошелька.
   function toggleWallet() {
-    haptics.light();
     loadWallet();
-    setWalletSheetOpen(true);
+    goToPage(CARD_VIEWS.indexOf('wallet'));
   }
 
   async function removeIncome(income: IncomeRecord) {
@@ -891,7 +888,7 @@ export function ExpensesScreen() {
             {/* Выбор вида — «барабан» между заголовком и карточкой: крутишь,
                 подписи прокатываются как на цилиндре механического календаря. */}
             <WheelSelector
-              labels={[t('expenses_view_week'), t('expenses_view_month'), t('expenses_view_calendar')]}
+              labels={[t('expenses_view_week'), t('expenses_view_month'), t('expenses_view_calendar'), t('expenses_wallet')]}
               progress={pageProgress}
               onSelect={goToPage}
               onDragStart={wheelDragStart}
@@ -1072,6 +1069,17 @@ export function ExpensesScreen() {
                         </View>
                         </Animated.View>
                       </Animated.View>
+                      <Animated.View style={pageStyle(3)}>
+                        <WalletPanel
+                          balance={walletBalance?.balance ?? 0}
+                          totalIncome={walletBalance?.totalIncome ?? 0}
+                          currency={walletBalance?.currency || categoryCurrency}
+                          incomes={incomes}
+                          intlLocale={intlLocale}
+                          onDelete={removeIncome}
+                          onAdd={() => rootNav()?.navigate('AddIncome')}
+                        />
+                      </Animated.View>
                     </Animated.ScrollView>
                     )}
                   </View>
@@ -1079,6 +1087,7 @@ export function ExpensesScreen() {
                   {/* Кошелёк — не ещё один вид трат, а остаток: поэтому не
                       сегмент, а строка, которая всегда на виду. Тап раскрывает
                       пополнения, и список ниже переключается на них. */}
+                  {cardView !== 'wallet' && (
                   <Pressable style={styles.walletRow} onPress={toggleWallet}>
                     <Wallet color={colors.accent} size={18} />
                     <Text style={styles.walletRowLabel}>{t('expenses_wallet')}</Text>
@@ -1089,6 +1098,7 @@ export function ExpensesScreen() {
                     />
                     <ChevronRight color={colors.textSecondary} size={16} />
                   </Pressable>
+                  )}
                   {walletMode && (
                     <View style={styles.walletDetails}>
                       <Text style={styles.walletDetailsLabel}>{t('expenses_topups_history')}</Text>
@@ -1123,18 +1133,6 @@ export function ExpensesScreen() {
             </View>
           </View>
         }
-      />
-
-      <WalletSheet
-        visible={walletSheetOpen}
-        onClose={() => setWalletSheetOpen(false)}
-        balance={walletBalance?.balance ?? 0}
-        totalIncome={walletBalance?.totalIncome ?? 0}
-        currency={walletBalance?.currency || categoryCurrency}
-        incomes={incomes}
-        intlLocale={intlLocale}
-        onDelete={removeIncome}
-        onAdd={() => rootNav()?.navigate('AddIncome')}
       />
 
       <SpeedDialFab
