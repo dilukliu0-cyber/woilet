@@ -84,6 +84,8 @@ brand — производитель или торговая марка («Horal
 всегда, когда марка видна на чеке, даже если она уже входит в cleanedName. Для товаров без марки
 (весовые овощи, хлеб на развес, пакет) — null.
 ${translationRule}Не выдумывай цену или данные, которых не видно на чеке.
+Скидки и акции («akce», «sleva», «Clubcard», строки с минусом) НЕ являются товарами: вычти скидку из price
+того товара, к которому она относится, и не добавляй её отдельной позицией.
 price — сумма за ВСЮ строку чека, то есть за все единицы товара сразу. unitPrice — цена за одну штуку.
 Строка «Паштет 3 x 24,90  74,70» означает quantity = 3, unitPrice = 24.90, price = 74.70. На чеке цена
 за штуку обычно напечатана заметнее итога по строке — не перепутай, в price идёт именно итог. Если штука
@@ -239,6 +241,14 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'ИИ вернул некорректный JSON' }, 502);
     }
 
+    // Скидки («akce», «sleva», Clubcard у Tesco) модель иногда отдаёт
+    // отдельной позицией с отрицательной ценой. В статистике это выглядело
+    // как товар за −13 Kč. Вычитаем скидку из цены товара, к которому она
+    // относится (то же название, иначе предыдущая позиция), а строку убираем.
+    if (Array.isArray(parsed?.items)) {
+      parsed.items = foldDiscounts(parsed.items);
+    }
+
     // Модель могла придумать «известное» название, которого в словаре нет —
     // тогда вместо слияния дублей получился бы новый дубль. Поэтому
     // подставляем только то, что реально было в списке.
@@ -304,6 +314,32 @@ async function fetchKnownProductNames(
     if (names.length >= 120) break;
   }
   return names;
+}
+
+type ParsedItem = { cleanedName?: string; price?: number; [key: string]: unknown };
+
+function foldDiscounts(items: ParsedItem[]): ParsedItem[] {
+  const result: ParsedItem[] = [];
+  for (const item of items) {
+    const price = Number(item?.price);
+    if (!(price < 0)) {
+      result.push(item);
+      continue;
+    }
+    const name = (item.cleanedName ?? '').trim().toLowerCase();
+    const target =
+      [...result].reverse().find((r) => (r.cleanedName ?? '').trim().toLowerCase() === name && Number(r.price) > 0) ??
+      [...result].reverse().find((r) => Number(r.price) > 0);
+    if (target) {
+      target.price = Math.round((Number(target.price) + price) * 100) / 100;
+      if (typeof target.unitPrice === 'number' && typeof target.quantity === 'number' && target.quantity > 0) {
+        target.unitPrice = Math.round((Number(target.price) / target.quantity) * 100) / 100;
+      }
+    }
+    // Скидку без товара, к которому её приписать, просто отбрасываем:
+    // отрицательная позиция в статистике хуже, чем недоучтённая скидка.
+  }
+  return result;
 }
 
 function jsonResponse(body: unknown, status = 200) {
