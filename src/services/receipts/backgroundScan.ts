@@ -174,7 +174,7 @@ async function processInBackground(
   // у всех таких отпечаток одинаковый — пустой магазин и сумма 0, — и
   // каждый следующий помечался бы дублем предыдущего.
   const isEmpty = recognized.items.length === 0 && !recognized.totalAmount;
-  const duplicate = isEmpty ? null : await findDuplicate(userId, receiptHash, receiptId);
+  const duplicate = isEmpty ? null : await findDuplicate(userId, receiptHash, receiptId, recognized);
   if (duplicate) {
     warnings.push(
       translate('svc_warn_duplicate', {
@@ -329,6 +329,7 @@ async function findDuplicate(
   userId: string,
   receiptHash: string,
   exceptReceiptId: string,
+  recognized: RecognizedReceipt,
 ): Promise<DuplicateReceipt | null> {
   const { data } = await supabase
     .from('receipts')
@@ -338,8 +339,30 @@ async function findDuplicate(
     .neq('id', exceptReceiptId)
     .limit(1)
     .maybeSingle();
+  if (data) return data;
 
-  return data ?? null;
+  // Отпечаток включает дату и время, а их модель часто не находит (у Tesco
+  // дата внизу чека). Тогда тот же чек, снятый в другой день, получал другой
+  // отпечаток и проходил мимо — на живых данных так задвоились четыре чека.
+  // Запасная проверка: тот же магазин, тот же итог и то же число позиций.
+  if (!recognized.totalAmount) return null;
+  const store = (recognized.storeName ?? '').trim().toLowerCase();
+  const { data: candidates } = await supabase
+    .from('receipts')
+    .select('id, store_name, purchase_date, total_amount, currency, receipt_items(count)')
+    .eq('user_id', userId)
+    .eq('total_amount', recognized.totalAmount)
+    .neq('id', exceptReceiptId)
+    .limit(10);
+  for (const row of (candidates ?? []) as unknown as (DuplicateReceipt & {
+    store_name: string | null;
+    receipt_items: { count: number }[];
+  })[]) {
+    const sameStore = (row.store_name ?? '').trim().toLowerCase().split(/\s+/)[0] === store.split(/\s+/)[0];
+    const sameCount = (row.receipt_items?.[0]?.count ?? -1) === recognized.items.length;
+    if (sameStore && sameCount) return row;
+  }
+  return null;
 }
 
 function computeHash(recognized: RecognizedReceipt): string {
