@@ -43,6 +43,7 @@ import {
 } from 'react-native';
 import { WeeklySpendingChart } from '../../components/charts/WeeklySpendingChart';
 import { WheelSelector } from '../../components/ui/WheelSelector';
+import { WalletSheet } from '../../components/wallet/WalletSheet';
 import { buildWidgetSnapshot, publishWidgetSnapshot } from '../../services/widgets/widgetSnapshot';
 import { useLimitsStore } from '../../store/limitsStore';
 import { ReceiptListItem } from '../../components/cards/ReceiptListItem';
@@ -403,10 +404,22 @@ export function ExpensesScreen() {
     fetchIncomes(userId).then(setIncomes);
   }
 
+  // Тап по строке кошелька открывает окно кошелька: там баланс, все
+  // пополнения и удаление каждого (раньше — только скрытым долгим нажатием).
+  const [walletSheetOpen, setWalletSheetOpen] = useState(false);
   function toggleWallet() {
     haptics.light();
-    animateNextLayout();
-    setWalletMode((open) => !open);
+    loadWallet();
+    setWalletSheetOpen(true);
+  }
+
+  async function removeIncome(income: IncomeRecord) {
+    const error = await deleteIncome(income.id);
+    if (error) {
+      Alert.alert(t('expenses_delete_income_failed'), error);
+      return;
+    }
+    loadWallet();
   }
 
   // --- Лента экранов (неделя / месяц / календарь) ---
@@ -1074,11 +1087,7 @@ export function ExpensesScreen() {
                       formatter={(n) => `${n.toFixed(0)} ${walletBalance?.currency || categoryCurrency}`}
                       style={styles.walletRowAmount}
                     />
-                    <ChevronDown
-                      color={colors.textSecondary}
-                      size={16}
-                      style={{ transform: [{ rotate: walletMode ? '180deg' : '0deg' }] }}
-                    />
+                    <ChevronRight color={colors.textSecondary} size={16} />
                   </Pressable>
                   {walletMode && (
                     <View style={styles.walletDetails}>
@@ -1114,6 +1123,18 @@ export function ExpensesScreen() {
             </View>
           </View>
         }
+      />
+
+      <WalletSheet
+        visible={walletSheetOpen}
+        onClose={() => setWalletSheetOpen(false)}
+        balance={walletBalance?.balance ?? 0}
+        totalIncome={walletBalance?.totalIncome ?? 0}
+        currency={walletBalance?.currency || categoryCurrency}
+        incomes={incomes}
+        intlLocale={intlLocale}
+        onDelete={removeIncome}
+        onAdd={() => rootNav()?.navigate('AddIncome')}
       />
 
       <SpeedDialFab
