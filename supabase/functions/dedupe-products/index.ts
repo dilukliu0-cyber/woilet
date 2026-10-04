@@ -59,10 +59,21 @@ ${names.map((name) => `- ${name}`).join('\n')}
 {"groups":[{"canonical":"...","aliases":["...","..."]}]}`;
 }
 
+const DISABLED = true;
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: CORS_HEADERS });
   }
+
+  // Автоочистка отключена. На живых данных она склеивала разные товары:
+  // «Tiger», «Monster» и «Hell» в один энергетик, соевый соус в «семена
+  // кунжута», соус с авокадо и петрушку в «огурец» — и статистика по
+  // товарам теряла смысл. Названия переназначены заново по исходным
+  // строкам чеков; новые дубли предотвращает сверка со словарём при скане
+  // (scan-receipt). Приложение по-прежнему зовёт эту функцию после скана —
+  // она просто ничего не делает, пока не будет переписана надёжно.
+  if (DISABLED) return jsonResponse({ merged: 0, groups: [], disabled: true });
 
   try {
     const authHeader = req.headers.get('Authorization');
@@ -101,9 +112,22 @@ Deno.serve(async (req) => {
     // выбирается моделью, но частота помогает ей понять, что привычнее.
     const { data: items } = await serviceClient
       .from('receipt_items')
-      .select('cleaned_name')
+      .select('cleaned_name, brand')
       .eq('user_id', user.id)
       .limit(2000);
+
+    // Марки, под которыми встречается каждое название. Разные марки — это
+    // разные товары, что бы ни решила модель: раньше «Tiger», «Monster» и
+    // «Hell» слились в один энергетик, «Lay's» — в «Clever», и статистика по
+    // товарам врала.
+    const brandsByName = new Map<string, Set<string>>();
+    for (const row of items ?? []) {
+      const name = (row.cleaned_name ?? '').trim();
+      const brand = normalizeBrand(row.brand);
+      if (!name || !brand) continue;
+      if (!brandsByName.has(name)) brandsByName.set(name, new Set());
+      brandsByName.get(name)!.add(brand);
+    }
 
     const names = [...new Set((items ?? []).map((row) => (row.cleaned_name ?? '').trim()).filter(Boolean))];
 
@@ -160,6 +184,14 @@ Deno.serve(async (req) => {
         .filter((alias) => alias && alias !== canonical && known.has(alias) && !alreadyTouched.has(alias));
 
       if (aliases.length === 0) continue;
+
+      // Проверка в коде, а не просьба к модели: если у названий группы
+      // встречаются разные марки, группу не применяем целиком.
+      const groupBrands = new Set<string>();
+      for (const name of [canonical, ...aliases]) {
+        brandsByName.get(name)?.forEach((brand) => groupBrands.add(brand));
+      }
+      if (groupBrands.size > 1) continue;
 
       alreadyTouched.add(canonical);
       aliases.forEach((alias) => alreadyTouched.add(alias));
@@ -230,6 +262,12 @@ async function touchLastRun(serviceClient: ReturnType<typeof createClient>, user
     .from('user_settings')
     .update({ last_dedupe_at: new Date().toISOString() })
     .eq('user_id', userId);
+}
+
+/** «Tesco Finest», «TESCO», «TS» — сравниваем по первому слову без регистра. */
+function normalizeBrand(brand: string | null | undefined): string {
+  const first = (brand ?? '').trim().toLowerCase().split(/\s+/)[0] ?? '';
+  return first.replace(/[^\p{L}\p{N}]/gu, '');
 }
 
 function jsonResponse(body: unknown, status = 200) {
