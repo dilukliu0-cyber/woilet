@@ -155,9 +155,10 @@ export function ExpensesScreen() {
   // календарь) переключаются подписанным сегментом; кошелёк — отдельная
   // раскрывающаяся строка. Раньше это был 3D-переворот с безымянными
   // иконками в углах: что откроется, приходилось угадывать.
-  const [walletMode, setWalletMode] = useState(false);
   const [cardView, setCardView] = useState<CardView>('month');
   const cardViewRef = useRef<CardView>('month');
+  // На экране кошелька список под карточкой показывает пополнения вместо чеков.
+  const walletMode = cardView === 'wallet';
   const switchingCard = useRef(false);
   const contentOpacity = useRef(new Animated.Value(1)).current;
   const contentOffset = useRef(new Animated.Value(0)).current;
@@ -674,7 +675,8 @@ export function ExpensesScreen() {
 
   // Месяцы раскрываются отдельно, а внутри записи идут по дням покупки.
   const feedItems: FeedEntry[] = (() => {
-    if (selectedDay !== null && !walletMode) return feedFiltered;
+    if (walletMode) return feedFiltered;
+    if (selectedDay !== null) return feedFiltered;
 
     const groups = new Map<string, FeedEntry[]>();
     for (const entry of feedFiltered) {
@@ -805,10 +807,8 @@ export function ExpensesScreen() {
           if (item.kind === 'income') {
             return (
               <FadeInView index={index}>
-                <Pressable
-                  style={styles.incomeRow}
-                  onLongPress={() => handleIncomeLongPress(item.income)}
-                >
+                <SwipeToDeleteRow onDelete={() => removeIncome(item.income)}>
+                <Pressable style={styles.incomeRow}>
                   <PlusCircle color={colors.success} size={24} strokeWidth={1.75} />
                   <View style={styles.incomeInfo}>
                     <Text style={styles.incomeNote} numberOfLines={1}>
@@ -825,6 +825,7 @@ export function ExpensesScreen() {
                     +{item.income.amount.toFixed(0)} {item.income.currency}
                   </Text>
                 </Pressable>
+                </SwipeToDeleteRow>
               </FadeInView>
             );
           }
@@ -1098,14 +1099,6 @@ export function ExpensesScreen() {
                     />
                     <ChevronRight color={colors.textSecondary} size={16} />
                   </Pressable>
-                  )}
-                  {walletMode && (
-                    <View style={styles.walletDetails}>
-                      <Text style={styles.walletDetailsLabel}>{t('expenses_topups_history')}</Text>
-                      <Text style={styles.walletSubIncome}>
-                        +{(walletBalance?.totalIncome ?? 0).toFixed(0)} {walletBalance?.currency || categoryCurrency}
-                      </Text>
-                    </View>
                   )}
 
                     <Pressable style={styles.limitsLink} onPress={openLimits}>

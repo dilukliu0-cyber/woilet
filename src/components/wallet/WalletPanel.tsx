@@ -64,41 +64,6 @@ export function WalletPanel({
         <Text style={styles.addText}>{t('expenses_action_income')}</Text>
       </Pressable>
 
-      {sorted.length === 0 && <Text style={styles.empty}>{t('expenses_topups_empty')}</Text>}
-      {sorted.map((item, index) => {
-        const confirming = confirmId === item.id;
-        return (
-          <View key={item.id} style={[styles.row, index > 0 && styles.rowBorder]}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.note} numberOfLines={1}>
-                {item.note?.trim() || t('expenses_income_fallback')}
-              </Text>
-              <Text style={styles.date}>
-                {new Date(item.created_at).toLocaleDateString(intlLocale, {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
-              </Text>
-            </View>
-            <Text style={styles.amount}>
-              +{item.amount.toFixed(0)} {item.currency}
-            </Text>
-            <Pressable
-              style={[styles.trash, confirming && styles.trashConfirm]}
-              onPress={() => handleTrash(item)}
-              disabled={deletingId === item.id}
-              hitSlop={6}
-            >
-              {confirming ? (
-                <Text style={styles.trashConfirmText}>{t('common_delete')}</Text>
-              ) : (
-                <Trash2 color={colors.textSecondary} size={18} />
-              )}
-            </Pressable>
-          </View>
-        );
-      })}
     </View>
   );
 }
