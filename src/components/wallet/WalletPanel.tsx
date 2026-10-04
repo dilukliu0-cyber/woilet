@@ -59,10 +59,6 @@ export function WalletPanel({
         {t('expenses_topups_history')} +{totalIncome.toFixed(0)} {currency}
       </Text>
 
-      <Pressable style={styles.addButton} onPress={onAdd}>
-        <Plus color={colors.background} size={18} />
-        <Text style={styles.addText}>{t('expenses_action_income')}</Text>
-      </Pressable>
 
     </View>
   );

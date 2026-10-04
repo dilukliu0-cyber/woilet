@@ -151,7 +151,12 @@ const styles = themedStyles(() => StyleSheet.create({
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-end',
     gap: 12,
+    // Подписи не должны упираться в ширину колонки кнопок: на телефоне
+    // «Пополнение» обрезалось до «Попол…».
+    alignSelf: 'flex-end',
+    minWidth: 260,
   },
   itemButton: {
     width: ITEM_SIZE,
@@ -164,6 +169,7 @@ const styles = themedStyles(() => StyleSheet.create({
     justifyContent: 'center',
   },
   labelChip: {
+    flexShrink: 0,
     backgroundColor: colors.surface,
     borderRadius: 10,
     paddingHorizontal: 12,
@@ -173,8 +179,8 @@ const styles = themedStyles(() => StyleSheet.create({
   },
   labelText: {
     color: colors.textPrimary,
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '800',
   },
   fab: {
     width: FAB_SIZE,
